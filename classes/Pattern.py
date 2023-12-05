@@ -18,13 +18,13 @@ class Pattern:
     def get_sinks(self):
         return self._sinks
     
-    def is_source(self, name):
+    def contains_source(self, name):
         return name in self._sources
 
-    def is_sanitizer(self, name):
+    def contains_sanitizer(self, name):
         return name in self._sanitizers
 
-    def is_sink(self, name):
+    def contains_sink(self, name):
         return name in self._sinks
 
 # Example usage
