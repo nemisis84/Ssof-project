@@ -1,7 +1,7 @@
 class Label:
     def __init__(self, sources, sanitizers):
-        self._sources = set(sources)
-        self._sanitizers = set(sanitizers)
+        self._sources = sources
+        self._sanitizers = sanitizers
 
     def add_source(self, source):
         self._sources.add(source)
@@ -22,14 +22,14 @@ class Label:
         return combined_label
 
 if __name__ == "__main__":
-    label1 = Label(("sourceX", "SourceY"), ("SanA", "SanB"))
+    label1 = Label({"sourceX", "SourceY"}, {"SanA", "SanB"})
     label1.add_source("source1")
     label1.add_source("sourceX") # Try to add excisting source
     label1.add_sanitizer("sanitizer1")
     print("Sources in label1", label1.get_sources())
     print("Sanitizers in label1", label1.get_sanitizers())
 
-    label2 = Label(("sourceA", "SourceZ"), ("SanC", "SanD"))
+    label2 = Label({"sourceA", "SourceZ"}, {"SanC", "SanD"})
     label2.add_source("source2")
     
     combined_label = label1.combine(label2)
