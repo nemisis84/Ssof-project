@@ -24,10 +24,7 @@ class MultiLabel:
         result = MultiLabel(self.get_pattern_to_label_mapping())
         for pattern_name, (pattern, label) in other_multilabel.get_pattern_to_label_mapping().items():
             result.add_label(pattern, label)
-        
-        # for pattern, labels in other_multilabel.pattern_to_label_mapping.items():
-        #     for label in labels:
-        #         result.add_label(pattern, label)
+            
         return result
 
 
