@@ -1,6 +1,8 @@
 import ast
 from astexport.export import export_dict
 
+WHILE_LOOP_LIMIT = 3
+
 class ExecutionTrace:
     def __init__(self):
         self.statements = []
@@ -42,12 +44,24 @@ def traverse_ast(node, current_trace, all_traces):
         
         # trace for else
         current_trace.add_child_trace(else_trace)
+        all_traces.append(else_trace)
         if len(node.orelse) > 0:
-            all_traces.append(else_trace)
             else_trace.add_statement("Else")
 
             for orelse_child_node in node.orelse:
                 traverse_ast(orelse_child_node, else_trace, all_traces)
+
+    elif isinstance(node, (ast.While)):
+        for i in range(1, WHILE_LOOP_LIMIT+1):
+            while_trace = current_trace.deep_copy()
+            current_trace.add_child_trace(while_trace)
+            all_traces.append(while_trace)
+
+            for _ in range(i):
+                while_trace.add_statement("While")
+                for child_node in node.body:
+                    traverse_ast(child_node, while_trace, all_traces)
+                
 
 def get_traces(node):
     all_traces = []
@@ -58,7 +72,7 @@ def get_traces(node):
     return all_traces
 
 # get source code
-filename = './slices/4b-conds-branching.py'
+filename = './slices/5b-loops-unfolding.py'
 with open(filename, 'r') as file:
     source = file.read()
 
@@ -67,7 +81,5 @@ tree = ast.parse(source, filename)
 json_dict = export_dict(tree)
 # print(json_dict)
 
-traces = get_traces(tree)
-print(len(traces))
-for trace in traces:
+for trace in get_traces(tree):
     print(trace)
