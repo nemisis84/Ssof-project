@@ -4,9 +4,15 @@ from astexport.export import export_dict
 class ExecutionTrace:
     def __init__(self):
         self.statements = []
+        self.child_traces = set()
+    
+    def add_child_trace(self, trace):
+        self.child_traces.add(trace)
 
     def add_statement(self, statement):
         self.statements.append(statement)
+        for child in self.child_traces:
+            child.add_statement(statement)
 
     def deep_copy(self):
         result = ExecutionTrace()
@@ -35,6 +41,7 @@ def traverse_ast(node, current_trace, all_traces):
             traverse_ast(body_child_node, current_trace, all_traces)
         
         # trace for else
+        current_trace.add_child_trace(else_trace)
         if len(node.orelse) > 0:
             all_traces.append(else_trace)
             else_trace.add_statement("Else")
@@ -51,7 +58,7 @@ def get_traces(node):
     return all_traces
 
 # get source code
-filename = './slices/4a-conds-branching.py'
+filename = './slices/4b-conds-branching.py'
 with open(filename, 'r') as file:
     source = file.read()
 
