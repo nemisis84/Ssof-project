@@ -3,7 +3,7 @@ from Label import Label
 
 class MultiLabel:
     def __init__(self, labels_dict = {}):
-        self._labels = labels_dict # {pattern_name: {label1, label2}}
+        self._labels = labels_dict # {pattern_name: {label1}}
     
     def get_labels(self, pattern_name):
         return self._labels[pattern_name]
@@ -26,8 +26,9 @@ class MultiLabel:
 
 
 if __name__ == "__main__":
-    label1 = Label({"sourceA", "sourceB"}, {"san1", "san2"})
-    label2 = Label({"sourceC"}, {"san3"})
+    label1 = Label([("sourceX", {"SanA", "SanB"}), ("SourceY", {"SanH", "SanM"})])
+    label2 = Label([("SourceZ", {"SanC", "SanD"}), ("SourceE", {"SanW", "SanQ"})])
+
 
     pattern1 = Pattern(
         name="pattern1",
@@ -47,20 +48,20 @@ if __name__ == "__main__":
     
     assert(len(multi_label.get_labels("pattern2")) == 1)
     for label in multi_label.get_labels("pattern1"):
-        assert(label.get_sources() == {"sourceA", "sourceB"})
-        assert(label.get_sanitizers() == {"san1", "san2"})
+        assert(label.get_source_names() == ['sourceX', 'SourceY'])
+        assert(label.get_sanitizers("sourceX") == {"SanA", "SanB"})
     
     assert(len(multi_label.get_labels("pattern2")) == 1)
     for label in multi_label.get_labels("pattern2"):
-        assert(label.get_sources() == {"sourceC"})
-        assert(label.get_sanitizers() == {"san3"})
+        assert(label.get_source_names() == ['SourceZ', 'SourceE'])
+        assert(label.get_sanitizers("SourceZ") == {"SanC", "SanD"})
 
     
-    label3 = Label({"sourceZ"}, {"san26"})
+    label3 = Label([("source5", {"sanG"})])
 
     multi_label2 = MultiLabel({"pattern1":{label3}})
     multi_label_combi = multi_label.combine(multi_label2)
 
     # assert that both labels are in combination
-    assert any(label.get_sources() == {"sourceA", "sourceB"} for label in multi_label_combi.get_labels("pattern1"))
-    assert any(label.get_sources() == {"sourceZ"} for label in multi_label_combi.get_labels("pattern1"))
+    assert any(label.get_source_names() == ["sourceX", "SourceY"] for label in multi_label_combi.get_labels("pattern1"))
+    assert any(label.get_source_names() == ["SourceZ", "SourceE"] for label in multi_label_combi.get_labels("pattern2"))
