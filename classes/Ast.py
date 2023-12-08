@@ -80,19 +80,21 @@ def get_traces(node):
     traverse_ast(node, initial_trace, all_traces)
     return all_traces
 
-# get source code
-filename = './slices/5b-loops-unfolding.py'
-with open(filename, 'r') as file:
-    source = file.read()
 
-# create ast and json objects
-tree = ast.parse(source, filename)
-json_dict = export_dict(tree)
-# print(json_dict)
+if __name__ == "__main__":
+    # get source code
+    filename = '../slices/5b-loops-unfolding.py'
+    with open(filename, 'r') as file:
+        source = file.read()
 
-# lab 3 exercise 2
-# PrintNodeInfoVisitor().visit(tree)
+    # create ast and json objects
+    tree = ast.parse(source, filename)
+    json_dict = export_dict(tree)
+    # print(json_dict)
 
-# lab 3 exercise 3
-for trace in get_traces(tree):
-    print(trace)
+    # lab 3 exercise 2
+    # PrintNodeInfoVisitor().visit(tree)
+
+    # lab 3 exercise 3
+    for trace in get_traces(tree):
+        print(trace)
