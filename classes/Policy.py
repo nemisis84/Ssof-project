@@ -60,4 +60,4 @@ if __name__ == "__main__":
     vul_multilabel = policy1.corresponding_illegal_flow("SanA", multi_label)
 
     assert(list(vul_multilabel.get_patterns()) == ["pattern1"])
-    assert(list(vul_multilabel.get_labels("pattern1"))[0].get_source_names() == ["sourceX", "SourceY"])
+    assert(list(vul_multilabel.get_label("pattern1"))[0].get_source_names() == ["sourceX", "SourceY"])

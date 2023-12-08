@@ -8,7 +8,7 @@ class MultiLabel:
     def get_pattern_to_labels_mapping(self):
         return self.pattern_to_labels_mapping
 
-    def get_labels(self, pattern_name):
+    def get_label(self, pattern_name):
         return self.pattern_to_labels_mapping[pattern_name]
 
     def get_patterns(self):
@@ -38,11 +38,11 @@ if __name__ == "__main__":
 
     multi_label = MultiLabel({"pattern1":label1, "pattern2":label2})
     
-    label  = multi_label.get_labels("pattern1")
+    label  = multi_label.get_label("pattern1")
     assert(label.get_source_names() == ['sourceX', 'SourceY'])
     assert(label.get_sanitizers("sourceX") == {"SanA", "SanB"})
     
-    label = multi_label.get_labels("pattern2")
+    label = multi_label.get_label("pattern2")
     assert(label.get_source_names() == ['SourceZ', 'SourceE'])
     assert(label.get_sanitizers("SourceZ") == {"SanC", "SanD"})
 
@@ -53,6 +53,3 @@ if __name__ == "__main__":
     multi_label_combi = multi_label.combine(multi_label2)
 
     assert(list(multi_label_combi.get_patterns()) == ['pattern1', 'pattern2', 'pattern7'])
-    # assert that both labels are in combination
-    # assert any(label.get_source_names() == ["sourceX", "SourceY"] in multi_label_combi.get_labels("pattern1").get_source_names())
-    # assert any(label.get_source_names() == ["SourceZ", "SourceE"] for label in multi_label_combi.get_labels("pattern2"))
