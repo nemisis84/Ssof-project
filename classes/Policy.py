@@ -20,16 +20,13 @@ class Policy:
         return [pattern.get_name() for pattern in self._patterns if pattern.contains_sink(sink)]
 
     def corresponding_illegal_flow(self, name, multilablel):
-        multi_label = MultiLabel({})
-        for pattern, label in multilablel.get_pattern_to_labels_mapping().items():
-            if name in label.get_source_names():
-                print(name + " found in label")
-                multi_label.add_label(pattern, label)
-            for source in label.get_source_names():
-                if name in label.get_sanitizers(source):
-                    print(name + " found in label")
-                    multi_label.add_label(pattern, label)
-        return multi_label
+        multi_label_illegal_flow = MultiLabel({})
+
+        for pattern_name, (pattern, label) in multilablel.get_pattern_to_label_mapping().items():
+            if pattern.contains_sink(name):
+                multi_label_illegal_flow.add_label(pattern, label)
+        
+        return multi_label_illegal_flow
 
 
 
@@ -56,8 +53,12 @@ if __name__ == "__main__":
     label1 = Label([("sourceX", {"SanA", "SanB"}), ("SourceY", {"SanH", "SanM"})])
     label2 = Label([("SourceZ", {"SanC", "SanD"}), ("SourceE", {"SanW", "SanQ"})])
 
-    multi_label = MultiLabel({"pattern1":label1, "pattern2":label2})
-    vul_multilabel = policy1.corresponding_illegal_flow("SanA", multi_label)
+    pattern1 = Pattern("pattern1", ["sourceX", "SourceY"], [], ["sink1"])
+    pattern2 = Pattern("pattern2", ["SourceZ", "SourceE"], [], ["sink2"])
 
-    assert(list(vul_multilabel.get_patterns()) == ["pattern1"])
-    assert(list(vul_multilabel.get_labels("pattern1"))[0].get_source_names() == ["sourceX", "SourceY"])
+    multilabel = MultiLabel({pattern1.get_name():(pattern1, label1), pattern2.get_name():(pattern2,label2)})
+    
+    multilabel_illegal = policy1.corresponding_illegal_flow("sink1", multilabel)
+
+    assert(list(multilabel_illegal.get_pattern_names()) == ["pattern1"])
+    assert(multilabel_illegal.get_label(pattern1).get_source_names() == ["sourceX", "SourceY"])
