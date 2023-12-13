@@ -15,21 +15,29 @@ label2 = Label([("SourceZ", {"SanC", "SanD"}), ("SourceE", {"SanW", "SanQ"})])
 pattern1 = Pattern("pattern1", ["sourceX", "SourceY"], [], [])
 pattern2 = Pattern("pattern2", ["SourceZ", "SourceE"], [], [])
 
-multi_label = MultiLabel({pattern1.get_name():(pattern1, label1), pattern2.get_name():(pattern2, label2)})
+multilabel = MultiLabel({pattern1.get_name():(pattern1, label1), pattern2.get_name():(pattern2, label2)})
 
-label  = multi_label.get_label(pattern1)
+label  = multilabel.get_label(pattern1)
 assert(label.get_source_names() == ['sourceX', 'SourceY'])
 assert(label.get_sanitizers("sourceX") == {"SanA", "SanB"})
 
-label = multi_label.get_label(pattern2)
+label = multilabel.get_label(pattern2)
 assert(label.get_source_names() == ['SourceZ', 'SourceE'])
 assert(label.get_sanitizers("SourceZ") == {"SanC", "SanD"})
 
 label3 = Label([("source5", {"sanG"})])
-
 pattern3 = Pattern("pattern3", ["sanG"], [], [])
 
-multi_label3 = MultiLabel({pattern3.get_name():(pattern3, label3)})
-multi_label_combi = multi_label.combine(multi_label3)
+multilabel3 = MultiLabel({pattern3.get_name():(pattern3, label3)})
+multilabel_combi = multilabel.combine(multilabel3)
 
-assert(multi_label_combi.get_pattern_names()) == ['pattern1', 'pattern2', 'pattern3']
+assert(multilabel_combi.get_pattern_names()) == ['pattern1', 'pattern2', 'pattern3']
+
+
+# test deepcopy
+multilabel_orig = MultiLabel({pattern1.get_name():(pattern1, label1)})
+multilabel_deepcopy = multilabel_orig.deep_copy()
+multilabel_orig.add_label(pattern2, label2)
+
+assert(len(multilabel_deepcopy.get_pattern_to_label_mapping().keys()) == 1)
+assert(len(multilabel_orig.get_pattern_to_label_mapping().keys()) == 2)

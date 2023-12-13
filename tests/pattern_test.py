@@ -25,3 +25,10 @@ print(f"Get the sanitizers: {vulnerability_pattern.get_sanitizers()}")
 print(f"Get the sinks: {vulnerability_pattern.get_sinks()}")
 print(f"Get the name: {vulnerability_pattern.get_name()}")
 print(f"Get the sources: {vulnerability_pattern.get_sources()}")
+
+vulnerability_pattern_deepcopy = vulnerability_pattern.deep_copy()
+
+assert(vulnerability_pattern_deepcopy.get_name() == vulnerability_pattern.get_name())
+assert(vulnerability_pattern_deepcopy.get_sources() == vulnerability_pattern.get_sources())
+assert(vulnerability_pattern_deepcopy.get_sanitizers() == vulnerability_pattern.get_sanitizers())
+assert(vulnerability_pattern_deepcopy.get_sinks() == vulnerability_pattern.get_sinks())
