@@ -1,6 +1,3 @@
-from Label import Label
-from MultiLabel import MultiLabel
-
 class MultiLabelling():
     def __init__(self, multi_labels):
         # This dictionary stores variable names as keys and their multi-labels as values

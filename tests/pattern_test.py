@@ -1,13 +1,21 @@
-from Label import Label
-from MultiLabel import MultiLabel
-from MultiLabelling import MultiLabelling
-from Pattern import Pattern
+import os
+import sys
+
+# Add the parent directory to the sys.path to allow relative imports
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from src.Label import Label
+from src.MultiLabel import MultiLabel
+from src.MultiLabelling import MultiLabelling
+from src.Pattern import Pattern
+
 vulnerability_pattern = Pattern(
     name="SQL Injection",
     sources=["user_input", "random_file"],
     sanitizers=["sanitize_something"],
     sinks=["some_sink"]
 )
+
 # Testing contains_* functions
 print("Is 'user_input' a source?", vulnerability_pattern.contains_source("user_input"))
 print("Is 'sanitize_sql_query' a sanitizer?", vulnerability_pattern.contains_sanitizer("sanitize_sql_query"))

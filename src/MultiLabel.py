@@ -1,6 +1,3 @@
-from Pattern import Pattern
-from Label import Label
-
 class MultiLabel:
     def __init__(self, labels_dict = {}):
         self.pattern_to_label_mapping = labels_dict # {pattern_name: (pattern, label)}
