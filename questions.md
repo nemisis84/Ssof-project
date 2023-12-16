@@ -1,0 +1,1 @@
+1. As the vulnerbility output shows one source per vulerebility leak, should the Label class be made such that it only holds one source, with the opportunity of multiple sanitizers? If not, how should we selct sources from the labels in the multiplabel when adding vulnerabilies to the vulnerability class as there could be multiple sources in the label?

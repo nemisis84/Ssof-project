@@ -1,46 +1,73 @@
-from MultiLabel import MultiLabel
-from Label import Label
-
 class Vulnerabilities():
 
-    def __init__(self, vulnerabilities):
-        self.vulnerabilities = vulnerabilities # {"vulnerability_name": multilabel}
+    def __init__(self):
+        self.vulnerabilities = [] # [{"vulnerability": "A_1", "source": ["b", 1], "sink": ["e", 2], "unsanitized_flows": "no", "sanitized_flows": [[["f", 2]]]}, {"vulnerability": "A_2", "source": ["b", 1], "sink": ["c", 2], "unsanitized_flows": "yes", "sanitized_flows": [[["f", 2]]]}, {"vulnerability": "A_3", "source": ["b", 1], "sink": ["e", 3], "unsanitized_flows": "yes", "sanitized_flows": [[["f", 2]]]}, {"vulnerability": "B_1", "source": ["b", 1], "sink": ["c", 2], "unsanitized_flows": "no", "sanitized_flows": [[["e", 2], ["d", 2]], [["d", 2]]]}]
 
-    def add_vulnerability(self, name, multilabel):
-        if name not in self.vulnerabilities:
-            self.vulnerabilities[name] = multilabel
-        else:
-            print("Vulnerability already recorded.")
+    def get_vulnerability(self, vulnerability_name):
+        for vul_dict in self.vulnerabilities:
+            if vulnerability_name == vul_dict["vulnerability"][:-2]:
+                return vul_dict
+        return None
+
+    def get_all_vulnerabilities(self):
+        return self.vulnerabilities
     
-    def report_vulnerability(self, name):
-        result = {}
-        if name not in self.vulnerabilities:
-            return result
-        result["vulnerability"] = name
-        result["source"] = []
-        result["sink"] = []
-        result["unsanitized_flows"] = "Undecided"
-        result["sanitized_flows"] = []
+    def name_helper(self, pattern_name):
+        
+        if len(self.get_all_vulnerabilities()) == 0:
+            return pattern_name + "_1"
+        
+        counter = 1
 
+        for vulnerability in self.vulnerabilities:
+            print(vulnerability["vulnerability"][:-2], pattern_name)
+            if vulnerability["vulnerability"][:-2] == pattern_name:
+                counter += 1
+
+        return pattern_name + "_" + str(counter)
+
+    def report_vulnerability(self, sink, multilabel):
+        result = {}
         
-        for pattern, label in self.vulnerabilities[name].get_pattern_to_labels_mapping().items():
-            result["source"].extend(label.get_source_names())
-            # for source in label.get_source_names():
-            #     print(label.get_source_names())
-            #     result["sanitized_flows"].extend(list(label.get_sanitizers(source)))
+
+        for (pattern, label) in multilabel.get_pattern_to_label_mapping().values():
+            
+            if sink in pattern.get_sinks():
+                result["vulnerability"] = self.name_helper(pattern.get_name())
+                result["source"] = label.get_source_names()
+                result["sink"] = sink
+                result["sanitized_flows"] = []
+                for source in result["source"]:
+                    
+                    result["sanitized_flows"].extend(label.get_sanitizers(source))
+                break
         
+        if not result["sanitized_flows"]:
+            result["unsanitized_flows"] = "Yes"
+        else:
+            # TODO: Find out how to decide this
+            result["unsanitized_flows"] = "Undecided"
+
+        self.vulnerabilities.append(result)
+
         return result
 
 if __name__ == "__main__":
     label1 = Label([("sourceX", {"SanA", "SanB"}), ("SourceY", {"SanH", "SanM"})])
     label2 = Label([("SourceZ", {"SanC", "SanD"}), ("SourceE", {"SanW", "SanQ"})])
-    multi_label1 = MultiLabel({"pattern1":label1, "pattern2":label2})
 
-    label3 = Label([("source5", {"sanG"})])
-    multi_label2 = MultiLabel({"pattern7":label3})
+    pattern1 = Pattern("pattern1", ["sourceX", "SourceY"], [], ["sink1", "sink4"])
+    pattern2 = Pattern("pattern2", ["SourceZ", "SourceE"], [], ["sink2", "sink3"])
 
-    vulnerabilities = Vulnerabilities({"vulA": multi_label1})
-    vulnerabilities.add_vulnerability("VulB", multi_label2)
+    multilabel = MultiLabel({"pattern1": (pattern1, label1), "pattern2": (pattern2, label2)})
 
-    report = vulnerabilities.report_vulnerability("vulA")
-    print(report)
+
+    vulnerabilities = Vulnerabilities()
+    vulnerabilities.report_vulnerability("sink1", multilabel)
+    vulnerabilities.report_vulnerability("sink3", multilabel)
+    vulnerabilities.report_vulnerability("sink2", multilabel)
+    
+
+    print(vulnerabilities.get_all_vulnerabilities())
+
+    print(vulnerabilities.get_vulnerability("pattern1"))
