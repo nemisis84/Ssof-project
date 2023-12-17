@@ -1,5 +1,5 @@
 import json
-import Pattern
+from Pattern import Pattern
 import ast
 from astexport.export import export_dict
 
@@ -7,14 +7,16 @@ def main():
     slice_input = input()
     json_input = input()
     
+    #If you want to test with an example
+    
+    #slice_input = "/home/ssof/Desktop/Ssoft/Ssof-project/slices/1a-basic-flow.py"
+    #json_input = "/home/ssof/Desktop/Ssoft/Ssof-project/slices/1a-basic-flow.patterns.json"
+    
     ast_tree = build_ats_tree(slice_input)
     patterns = read_json(json_input)
     
-    print(ast_tree)
-    print(patterns)
     
-     
-#Not sure where the inplicit flag is going to go 
+    
 def read_json(file_path):
     patterns = []
     
@@ -22,7 +24,7 @@ def read_json(file_path):
         data = json.load(file)
     
     for item in data:
-        pattern = Pattern(item['vulnerability'], item['sources'], item['sanitizers'], item['sinks']) #missing implicit flow flag
+        pattern = Pattern(item['vulnerability'], item['sources'], item['sanitizers'], item['sinks'], item['implicit']) #missing implicit flow flag
         patterns.append(pattern)
         
     return patterns
