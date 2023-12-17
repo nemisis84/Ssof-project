@@ -81,15 +81,24 @@ def get_traces(node):
     return all_traces
 
 
-if __name__ == "__main__":
-    # get source code
-    filename = '../slices/5b-loops-unfolding.py'
-    with open(filename, 'r') as file:
+def build_ats_tree(file_path):
+    
+    with open(file_path, 'r') as file:
         source = file.read()
 
     # create ast and json objects
-    tree = ast.parse(source, filename)
+    tree = ast.parse(source, file_path)
     json_dict = export_dict(tree)
+    
+    return tree, json_dict
+
+
+if __name__ == "__main__":
+    # get source code
+    #filename = '../slices/5b-loops-unfolding.py'
+    filename = 'slices/5b-loops-unfolding.py'
+    
+    tree, json_dict = build_ats_tree(filename)
     # print(json_dict)
 
     # lab 3 exercise 2
@@ -98,3 +107,4 @@ if __name__ == "__main__":
     # lab 3 exercise 3
     for trace in get_traces(tree):
         print(trace)
+        
