@@ -133,20 +133,21 @@ def get_traces(node):
 
 if __name__ == "__main__":
     # get source code
-    # filename = '../slices/1a-basic-flow.py'
+    filename = '../slices/1a-basic-flow.py'
     # filename = "../slices/3c-expr-attributes.py"
     # filename = "../slices/9-regions-guards.py"
-    filename = "../slices/4a-conds-branching.py"
+    # filename = "../slices/4a-conds-branching.py"
     # filename = "../slices/5a-loops-unfolding.py"
     # filename = "../slices/7-conds-implicit.py"
     # filename = "../slices/3a-expr-func-calls.py"
+    # filename = "../slices/3b-expr-func-calls.py"
     with open(filename, 'r') as file:
         source = file.read()
 
     # create ast and json objects
     tree = ast.parse(source, filename)
     json_dict = export_dict(tree)
-    # print(json_dict)
+    # print(type(json_dict))
     
     # lab 3 exercise 2
     # PrintNodeInfoVisitor().visit(tree)

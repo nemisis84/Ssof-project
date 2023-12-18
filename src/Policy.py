@@ -11,6 +11,12 @@ class Policy:
     def __init__(self, patterns):
         self._patterns = patterns # [pattern1, pattern2, ...]
 
+    def get_pattern(self, pattern_name):
+        for pattern in self._patterns:
+            if pattern.get_name() == pattern_name:
+                return pattern
+        return None
+
     def get_names(self):
         return list(map(lambda x: x.get_name(), self._patterns))
 
@@ -28,6 +34,7 @@ class Policy:
 
         for pattern_name, (pattern, label) in multilablel.get_pattern_to_label_mapping().items():
             if pattern.contains_sink(name):
+                # Pass name and multilabel into report_vulnerability
                 multi_label_illegal_flow.add_label(pattern, label)
         
         return multi_label_illegal_flow

@@ -1,7 +1,10 @@
 class MultiLabelling():
-    def __init__(self, multi_labels):
+    def __init__(self):
         # This dictionary stores variable names as keys and their multi-labels as values
-        self.multi_labels = multi_labels  # {"variable_name": multi_label}
+        self.multi_labels = {}  # {"variable_name": multi_label}
+
+    def add_multilabel(self, variable_name, multi_label):
+        self.multi_labels[variable_name] = multi_label
 
     def get_multi_labels(self):
         # Returns the entire dictionary of multi-labels

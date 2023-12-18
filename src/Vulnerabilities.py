@@ -43,7 +43,7 @@ class Vulnerabilities():
                         vulnerability["unsanitized_flows"] = "Yes"
                     else:
                         # TODO: Find out how to decide this
-                        vulnerability["unsanitized_flows"] = "Undecided"
+                        vulnerability["unsanitized_flows"] = "No"
                     self.vulnerabilities.append(vulnerability)
                 break
 
