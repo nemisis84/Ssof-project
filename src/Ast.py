@@ -11,6 +11,7 @@ class PrintNodeInfoVisitor(ast.NodeVisitor):
             print(f"lineno: {node.lineno}")
         ast.NodeVisitor.generic_visit(self, node)
 
+
 # lab 3 exercise 3
 class ExecutionTrace:
     def __init__(self):
@@ -42,6 +43,10 @@ def traverse_ast(node, current_trace, all_traces):
     
     elif isinstance(node, (ast.Expr, ast.Assign)):
         current_trace.add_statement(node.__class__.__name__)
+        # for target in node.targets:
+        #     traverse_ast(target, current_trace, all_traces)
+        traverse_ast(node.value, current_trace, all_traces)
+
 
     elif isinstance(node, (ast.If)):
         else_trace = current_trace.deep_copy()
@@ -70,7 +75,47 @@ def traverse_ast(node, current_trace, all_traces):
                 while_trace.add_statement("While")
                 for child_node in node.body:
                     traverse_ast(child_node, while_trace, all_traces)
-                
+    
+    # Expressions
+    elif isinstance(node, ast.Constant):
+        current_trace.add_statement(f"{node.__class__.__name__}: {node.value}")
+
+    elif isinstance(node, ast.Name):
+        current_trace.add_statement(f"{node.__class__.__name__}: {node.id}")
+
+    elif isinstance(node, ast.BinOp):
+        current_trace.add_statement(node.__class__.__name__)
+        traverse_ast(node.left, current_trace, all_traces)
+        traverse_ast(node.op, current_trace, all_traces)
+        traverse_ast(node.right, current_trace, all_traces)
+
+    elif isinstance(node, ast.UnaryOp):
+        current_trace.add_statement(node.__class__.__name__)
+        traverse_ast(node.op, current_trace, all_traces)
+        traverse_ast(node.operand, current_trace, all_traces)
+
+    elif isinstance(node, ast.BoolOp):
+        current_trace.add_statement(node.__class__.__name__)
+        for value in node.values:
+            traverse_ast(value, current_trace, all_traces)
+
+    elif isinstance(node, ast.Compare):
+        current_trace.add_statement(node.__class__.__name__)
+        traverse_ast(node.left, current_trace, all_traces)
+        for op in node.ops:
+            traverse_ast(op, current_trace, all_traces)
+        for comparator in node.comparators:
+            traverse_ast(comparator, current_trace, all_traces)
+
+    elif isinstance(node, ast.Call):
+        current_trace.add_statement(node.__class__.__name__)
+        traverse_ast(node.func, current_trace, all_traces)
+        for arg in node.args:
+            traverse_ast(arg, current_trace, all_traces)
+
+    elif isinstance(node, ast.Attribute):
+        current_trace.add_statement(f"{node.__class__.__name__}: {node.attr}")
+        traverse_ast(node.value, current_trace, all_traces)
 
 def get_traces(node):
     all_traces = []
@@ -81,9 +126,12 @@ def get_traces(node):
     return all_traces
 
 
+
 if __name__ == "__main__":
     # get source code
-    filename = '../slices/5b-loops-unfolding.py'
+    # filename = '../slices/1b-basic-flow.py'
+    filename = "../slices/3c-expr-attributes.py"
+    filename = "../slices/9-regions-guards.py"
     with open(filename, 'r') as file:
         source = file.read()
 
@@ -91,7 +139,7 @@ if __name__ == "__main__":
     tree = ast.parse(source, filename)
     json_dict = export_dict(tree)
     # print(json_dict)
-
+    
     # lab 3 exercise 2
     # PrintNodeInfoVisitor().visit(tree)
 
