@@ -17,7 +17,7 @@ class MultiLabelling():
     def mutator(self, old_variable_name, new_variable_name):
         # Updates the multi-label varable (key) for a given variable name
         if old_variable_name in self.multi_labels.keys():
-            self.multi_labels[new_variable_name] = self.multi_labels.pop(old_variable_name)
+            self.multi_labels[new_variable_name] = self.multi_labels[old_variable_name]
         else:
             print(f"Variable name '{old_variable_name}' not found.")
 

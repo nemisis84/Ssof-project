@@ -17,7 +17,6 @@ class Code_analyzer:
         self.multi_labelling = MultiLabelling()
         self.vulnerability = Vulnerabilities()
 
-
     def import_tree(self, filename):
         with open(filename, 'r') as file:
             source = file.read()
@@ -63,26 +62,13 @@ class Code_analyzer:
 
         self.multi_labelling.add_multilabel(source, MultiLabel)
 
-    def add_multilabel(self, variable_name, label):
-        multi_label = MultiLabel()
-        
 
-    def add_sanitizer(self, sanitizer, pattern_name):
-        # Check if pattern excist in a multilabel in Multilabbeling.
-        # Add a sanitizer if source is in any of the labels in the multilabel
-        pass
-    
-    def handle_sink(self, sink, pattern):
-        # What do we do with sinks?
-        pass
-    
     def has_matching_object(self, list1, list2):
         for item1 in list1:
             for item2 in list2:
                 if item1 == item2:
                     return item1
         return False
-
 
     def walk_tree(self):
         all_traces = []
@@ -105,12 +91,38 @@ class Code_analyzer:
         elif isinstance(node, ast.Assign):
             
             variable_name = node.targets[0].id #Assumes only one assignment when assigning to variables. 
-            self.multi_labelling.add_multilabel(variable_name, MultiLabel())
+
+            if isinstance(node.value, ast.Name):
+                value_variable_name = node.value.id
+                if value_variable_name in self.multi_labelling.get_multi_labels():
+                    
+                    # Check if value_variable_name is a source before handling it it
+                    pattern_source = self.is_source(value_variable_name)
+                    if pattern_source:
+                        pattern_object = self.policy.get_pattern(pattern_source[0])
+                        label = Label([(value_variable_name, {})])
+                        multi_label = MultiLabel({pattern_object.get_name(): (pattern_object, label)})
+                        
+                        # Report vulnerability, if the variable assigned is not a sink it will not complete the report. 
+                        illegal_flow = self.policy.corresponding_illegal_flow(variable_name, multi_label)
+                        self.vulnerability.report_vulnerability(variable_name, illegal_flow)
+
+                    self.multi_labelling.mutator(value_variable_name, variable_name)
+            else:
+                self.multi_labelling.add_multilabel(variable_name, MultiLabel())
 
             current_trace.add_statement(node)
             for target in node.targets:
                 self.traverse_ast(target, current_trace, all_traces)
             self.traverse_ast(node.value, current_trace, all_traces, assignment=variable_name)
+            if self.is_sink(variable_name):
+                pattern_sink = self.is_sink(variable_name)[0]
+                multi_label = self.multi_labelling.get_multi_label(variable_name)
+
+                if pattern_sink in multi_label.get_pattern_names():
+                    illegal_flow = self.policy.corresponding_illegal_flow(variable_name, multi_label)
+                    self.vulnerability.report_vulnerability(variable_name, illegal_flow)
+                    
 
         elif isinstance(node, (ast.If)):
             else_trace = current_trace.deep_copy()
@@ -188,8 +200,11 @@ class Code_analyzer:
             for arg in node.args: # Loop over arguments f(a,b,...)
                 inner_node = self.traverse_ast(arg, current_trace, all_traces)
                 call_input = inner_node.id
+
+                
                 if call_input in self.multi_labelling.get_multi_labels():
                     multi_label = self.multi_labelling.get_multi_label(call_input)
+                    
                 else:
                     pattern_source = self.is_source(call_input)
                     pattern_object = self.policy.get_pattern(pattern_source[0]) # assumes only one matching pattern
@@ -199,14 +214,23 @@ class Code_analyzer:
                     multi_label = MultiLabel({pattern_object.get_name(): (pattern_object, label)})
                     
                 if pattern_sink:
+                    # If input is a source
                     illegal_flow = self.policy.corresponding_illegal_flow(call_name, multi_label)
                     self.vulnerability.report_vulnerability(call_name, illegal_flow)
+                    # If input is a variable name pointing to a source
+                    # if call_input in self.multi_labelling.get_multi_labels():
+                    #     print(call_input)
+                    #     input_multi_label = self.multi_labelling.get_multi_label(call_input)
+                    #     # print(input_multi_label.get_pattern_to_label_mapping()["A"][1].get_sources())
+                    #     illegal_flow = self.policy.corresponding_illegal_flow(call_name, input_multi_label)
+                    #     self.vulnerability.report_vulnerability(call_name, illegal_flow)
             if assignment:
                 self.multi_labelling.add_multilabel(assignment, multi_label)
             
             
 
         elif isinstance(node, ast.Attribute):
+            # TODO: what if a sink calls on an attribute which is a source. 
             current_trace.add_statement(node)
             self.traverse_ast(node.value, current_trace, all_traces)
     
@@ -231,5 +255,6 @@ if __name__ == "__main__":
     code = f"../slices/{code_file}.py"
     analyzer = Code_analyzer(patterns, code)
     traces = analyzer.walk_tree()
-    print(analyzer.vulnerability.get_all_vulnerabilities())
+    for vulnerabilities in analyzer.vulnerability.get_all_vulnerabilities():
+        print(vulnerabilities)
     analyzer.pretty_print_traces(traces)
