@@ -52,16 +52,13 @@ class Code_analyzer:
         # Assuming `input` is a string representing a variable or function name
         return self.policy.get_names_with_sink(input)
 
-    def add_source(self, source, pattern_name):
-        # Create a multilabel with this source
-        multi_label = MultiLabel()
-        pattern = self.policy.get_pattern(pattern_name)
-        label = Label()
-        label.add_source((source, {}))
-        multi_label.add_label(pattern, label)
-
-        self.multi_labelling.add_multilabel(source, MultiLabel)
-
+    def report(self, variable_name, multi_label):
+        if self.is_sink(variable_name):
+            illegal_flow = self.policy.corresponding_illegal_flow(variable_name, multi_label)
+            self.vulnerability.report_vulnerability(variable_name, illegal_flow)
+        else:
+            print("No illegal flow found")
+ 
 
     def has_matching_object(self, list1, list2):
         for item1 in list1:
@@ -92,37 +89,42 @@ class Code_analyzer:
             
             variable_name = node.targets[0].id #Assumes only one assignment when assigning to variables. 
 
-            if isinstance(node.value, ast.Name):
+            if isinstance(node.value, ast.Name): # If we assigns a variable to another variable name
                 value_variable_name = node.value.id
-                if value_variable_name in self.multi_labelling.get_multi_labels():
-                    
-                    # Check if value_variable_name is a source before handling it it
-                    pattern_source = self.is_source(value_variable_name)
-                    if pattern_source:
-                        pattern_object = self.policy.get_pattern(pattern_source[0])
-                        label = Label([(value_variable_name, {})])
-                        multi_label = MultiLabel({pattern_object.get_name(): (pattern_object, label)})
-                        
-                        # Report vulnerability, if the variable assigned is not a sink it will not complete the report. 
-                        illegal_flow = self.policy.corresponding_illegal_flow(variable_name, multi_label)
-                        self.vulnerability.report_vulnerability(variable_name, illegal_flow)
 
-                    self.multi_labelling.mutator(value_variable_name, variable_name)
-            else:
+                pattern_source = self.is_source(value_variable_name)
+                
+                if pattern_source: # Is value_variable_name a source?
+                    pattern_object = self.policy.get_pattern(pattern_source[0])
+                    label = Label([(value_variable_name, {})])
+                    multi_label = MultiLabel({pattern_object.get_name(): (pattern_object, label)})
+                    print("Assign name to", variable_name, value_variable_name)
+                    self.multi_labelling.add_multilabel(variable_name, multi_label)
+                
+                # If value_variable_name is assigned before?
+                if value_variable_name in self.multi_labelling.get_multi_labels():
+                    value_multi_label = self.multi_labelling.get_multi_label(value_variable_name)
+                    if variable_name in self.multi_labelling.get_multi_labels() and pattern_source: # Is the variable_name assigned assigned to the current value_variable_name?
+                        new_multi_label = self.multi_labelling.get_multi_label(variable_name).combine(value_multi_label) # Combine
+                        self.multi_labelling.multi_labels[variable_name] = new_multi_label
+                    else:
+                        self.multi_labelling.mutator(value_variable_name, variable_name)
+
+                
+                if self.is_sink(variable_name): # Report
+                    print(f"Reporting assignment: {variable_name}")
+                    multi_label = self.multi_labelling.get_multi_label(variable_name)
+                    self.report(variable_name, multi_label)
+
+            elif isinstance(node.value, ast.Constant):
+                print("Assign constant to:", variable_name)
                 self.multi_labelling.add_multilabel(variable_name, MultiLabel())
 
             current_trace.add_statement(node)
-            for target in node.targets:
+            for target in node.targets: 
                 self.traverse_ast(target, current_trace, all_traces)
-            self.traverse_ast(node.value, current_trace, all_traces, assignment=variable_name)
-            if self.is_sink(variable_name):
-                pattern_sink = self.is_sink(variable_name)[0]
-                multi_label = self.multi_labelling.get_multi_label(variable_name)
+            self.traverse_ast(node.value, current_trace, all_traces, assignment=variable_name) # Continue traversal
 
-                if pattern_sink in multi_label.get_pattern_names():
-                    illegal_flow = self.policy.corresponding_illegal_flow(variable_name, multi_label)
-                    self.vulnerability.report_vulnerability(variable_name, illegal_flow)
-                    
 
         elif isinstance(node, (ast.If)):
             else_trace = current_trace.deep_copy()
@@ -201,7 +203,7 @@ class Code_analyzer:
                 inner_node = self.traverse_ast(arg, current_trace, all_traces)
                 call_input = inner_node.id
 
-                
+                # Is input an assigned variable
                 if call_input in self.multi_labelling.get_multi_labels():
                     multi_label = self.multi_labelling.get_multi_label(call_input)
                     
@@ -214,17 +216,11 @@ class Code_analyzer:
                     multi_label = MultiLabel({pattern_object.get_name(): (pattern_object, label)})
                     
                 if pattern_sink:
-                    # If input is a source
-                    illegal_flow = self.policy.corresponding_illegal_flow(call_name, multi_label)
-                    self.vulnerability.report_vulnerability(call_name, illegal_flow)
-                    # If input is a variable name pointing to a source
-                    # if call_input in self.multi_labelling.get_multi_labels():
-                    #     print(call_input)
-                    #     input_multi_label = self.multi_labelling.get_multi_label(call_input)
-                    #     # print(input_multi_label.get_pattern_to_label_mapping()["A"][1].get_sources())
-                    #     illegal_flow = self.policy.corresponding_illegal_flow(call_name, input_multi_label)
-                    #     self.vulnerability.report_vulnerability(call_name, illegal_flow)
+                    print(f"Reporting function: {call_name}")
+                    self.report(call_name, multi_label)
+
             if assignment:
+                print("Assign function to:", assignment)
                 self.multi_labelling.add_multilabel(assignment, multi_label)
             
             
@@ -250,7 +246,7 @@ class Code_analyzer:
             print()
 
 if __name__ == "__main__":
-    code_file = "1a-basic-flow"
+    code_file = "1b-basic-flow"
     patterns = f"../slices/{code_file}.patterns.json"
     code = f"../slices/{code_file}.py"
     analyzer = Code_analyzer(patterns, code)
