@@ -52,10 +52,10 @@ class Code_analyzer:
         # Assuming `input` is a string representing a variable or function name
         return self.policy.get_names_with_sink(input)
 
-    def report(self, variable_name, multi_label):
+    def report(self, variable_name, multi_label, sink_lineno = None):
         if self.is_sink(variable_name):
             illegal_flow = self.policy.corresponding_illegal_flow(variable_name, multi_label)
-            self.vulnerability.report_vulnerability(variable_name, illegal_flow)
+            self.vulnerability.report_vulnerability(variable_name, illegal_flow, sink_lineno)
         else:
             print("No illegal flow found")
  
@@ -97,8 +97,8 @@ class Code_analyzer:
                 
                 if len(source_patterns) > 0: # Is value_variable_name a source?
                     pattern_object = source_patterns[0]
-                    label = Label([(value_variable_name, set())])
-                    multi_label = MultiLabel({pattern_object.get_name(): (pattern_object, label)})
+                    label = Label([(value_variable_name, set(), node.lineno)])
+                    multi_label = MultiLabel(node.lineno, {pattern_object.get_name(): (pattern_object, label)})
                     print("Assign name to", variable_name, value_variable_name)
                     self.multi_labelling.add_multilabel(variable_name, multi_label)
                 
@@ -115,7 +115,7 @@ class Code_analyzer:
                 if self.is_sink(variable_name): # Report
                     print(f"Reporting assignment: {variable_name}")
                     multi_label = self.multi_labelling.get_multi_label(variable_name)
-                    self.report(variable_name, multi_label)
+                    self.report(variable_name, multi_label, node.lineno)
 
             elif isinstance(node.value, ast.Constant):
                 print("Assign constant to:", variable_name)
@@ -205,20 +205,17 @@ class Code_analyzer:
             sink_patterns = self.policy.get_relevant_patterns(call_name, "sink")
             sanitizer_patterns = self.policy.get_relevant_patterns(call_name, "sanitizer")
             source_patterns = self.policy.get_relevant_patterns(call_name, "source")
-
-            pattern_sink = self.is_sink(call_name)
-            pattern_sanitizer = self.is_sanitizer(call_name)
             
             multi_label = MultiLabel()
 
             if not node.args and len(source_patterns) > 0: # No arguments in call. f.ex. f()
                 pattern_object = source_patterns[0] # assumes only one matching pattern
                 is_sanitized = self.has_matching_object(list(map(lambda x: x.get_name(), sanitizer_patterns)), list(map(lambda x: x.get_name(), source_patterns)))
-                label = Label([(call_name, set())])
-                multi_label = MultiLabel({pattern_object.get_name(): (pattern_object, label)})
+                label = Label([(call_name, set(), node.lineno)])
+                multi_label = MultiLabel(node.lineno, {pattern_object.get_name(): (pattern_object, label)})
                 print(f"Assign function {call_name} to:", assignment)
                 self.multi_labelling.add_multilabel(assignment, multi_label)
-                self.report(assignment, multi_label)
+                self.report(assignment, multi_label, node.lineno)
                 
                 return
             
@@ -245,8 +242,8 @@ class Code_analyzer:
                     pattern_object = source_patterns[0] # assumes only one matching pattern
                     is_sanitized = self.has_matching_object(list(map(lambda x: x.get_name(), sanitizer_patterns)), list(map(lambda x: x.get_name(), source_patterns)))
                                             
-                    label = Label([(call_input, {call_name})]) if is_sanitized else Label([(call_input, set())])
-                    add_multi_label = MultiLabel({pattern_object.get_name(): (pattern_object, label)})
+                    label = Label([(call_input, {call_name}, node.lineno)]) if is_sanitized else Label([(call_input, set(), node.lineno)])
+                    add_multi_label = MultiLabel(node.lineno, {pattern_object.get_name(): (pattern_object, label)})
                     multi_label = multi_label.combine(add_multi_label)
 
                 if len(pattern_sanitizer) > 0:                    
@@ -263,7 +260,7 @@ class Code_analyzer:
             if len(sink_patterns) > 0:
                 print(f"Reporting function: {call_name}")
 
-                self.report(call_name, multi_label)
+                self.report(call_name, multi_label, node.lineno)
 
             if assignment:
                 print("Assign function to:", assignment)

@@ -1,6 +1,8 @@
 class MultiLabel:
-    def __init__(self, labels_dict = {}):
+    def __init__(self, lineno = None, labels_dict = {}):
         self.pattern_to_label_mapping = labels_dict # {pattern_name: (pattern, label)}
+        self.lineno = lineno
+        #TODO: Change rest of multilabel to accomodate lineno
     
     def get_pattern_to_label_mapping(self):
         return self.pattern_to_label_mapping
@@ -16,7 +18,14 @@ class MultiLabel:
             print("Pattern already excist.")
         else:
             self.pattern_to_label_mapping[pattern.get_name()] = (pattern, label)
+            
+    def get_lineno(self):
+        return self.lineno
 
+    def set_lineno(self, lineno):
+        self.lineno = lineno
+        
+        
     def combine(self, other_multilabel):
         result = MultiLabel(self.get_pattern_to_label_mapping())
         for pattern_name, (pattern, label) in other_multilabel.get_pattern_to_label_mapping().items():
