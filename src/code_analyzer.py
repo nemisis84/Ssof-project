@@ -246,12 +246,12 @@ class Code_analyzer:
                     add_multi_label = MultiLabel(node.lineno, {pattern_object.get_name(): (pattern_object, label)})
                     multi_label = multi_label.combine(add_multi_label)
 
-                if len(pattern_sanitizer) > 0:                    
+                if len(sanitizer_patterns) > 0:                    
                     if call_input in self.multi_labelling.get_multi_labels():
                         this_multi_label = self.multi_labelling.get_multi_label(call_input)
                         labels = this_multi_label.get_pattern_to_label_mapping()
                         for (pattern, label) in labels.values():
-                            if pattern.get_name() == pattern_sanitizer[0].get_name():
+                            if pattern.get_name() == sanitizer_patterns[0].get_name():
                                 source = label.get_sources()[0][0] # Assumes only one source per label
 
                                 label.add_sanitizer(source, call_name)
