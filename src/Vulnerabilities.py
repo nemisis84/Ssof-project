@@ -37,8 +37,9 @@ class Vulnerabilities():
                 for source, sanitizers, lineno in sources:
                     vulnerability = {}
                     vulnerability["vulnerability"] = self.name_helper(pattern.get_name())
-                    vulnerability["source"] = (source, lineno)
-                    vulnerability["sink"] = (sink, sink_lineno)
+                    vulnerability["source"] = [source, lineno]
+                    vulnerability["sink"] = [sink, sink_lineno]
+                    #Unsanitized flow may need to be first
                     vulnerability["sanitized_flows"] = sanitizers.copy()
                     if not vulnerability["sanitized_flows"]:
                         vulnerability["unsanitized_flows"] = "Yes"

@@ -1,15 +1,15 @@
 class Label:
     def __init__(self, sources: list):
-        self._sources = sources # [(source, {san1, san2}), (source2, {san1, san2}), ...]
+        self._sources = sources # [(source, {san1, san2}, lineno), (source2, {san1, san2}, lineno), ...]
 
     def add_source(self, source):
         if isinstance(source, tuple):
             self._sources.append(source)
         else:
-            print("Source needs to be tuple: (source, {san1,san2})")
+            print("Source needs to be tuple: (source, {san1,san2}, lineno)")
 
     def add_sanitizer(self, source, sanitizer):
-        for sor, san in self._sources:
+        for sor, san, lineno in self._sources:
             if sor == source:
                 san.add(sanitizer)
                 return
@@ -26,7 +26,7 @@ class Label:
         return list(map(lambda x: x[2], self.get_sources()))
 
     def get_sanitizers(self, source):
-        for sor, san in self._sources:
+        for sor, san, lineno in self._sources:
             if sor == source:
                 return san.copy()
 

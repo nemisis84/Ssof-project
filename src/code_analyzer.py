@@ -97,7 +97,7 @@ class Code_analyzer:
                 if pattern_source: # Is value_variable_name a source?
                     pattern_object = self.policy.get_pattern(pattern_source[0])
                     label = Label([(value_variable_name, set(), node.lineno)])
-                    # print("aaaa :" + str(value_variable_name) + " " + str(node.lineno))
+                    
                     multi_label = MultiLabel(node.lineno, {pattern_object.get_name(): (pattern_object, label)})
                     print("Assign name to", variable_name, value_variable_name)
                     self.multi_labelling.add_multilabel(variable_name, multi_label)
@@ -212,11 +212,11 @@ class Code_analyzer:
                 pattern_object = self.policy.get_pattern(pattern_source[0]) # assumes only one matching pattern
                 is_sanitized = self.has_matching_object(pattern_sanitizer, pattern_source)
                 label = Label([(call_name, set(), node.lineno)])
-                print("aaaa :" + " " + str(node.lineno))
+                
                 multi_label = MultiLabel(node.lineno, {pattern_object.get_name(): (pattern_object, label)})
                 print(f"Assign function {call_name} to:", assignment)
                 self.multi_labelling.add_multilabel(assignment, multi_label)
-                self.report(assignment, multi_label)
+                self.report(assignment, multi_label, node.lineno)
                 
                 return
             
@@ -262,7 +262,7 @@ class Code_analyzer:
             if pattern_sink:
                 print(f"Reporting function: {call_name}")
 
-                self.report(call_name, multi_label)
+                self.report(call_name, multi_label, node.lineno)
 
             if assignment:
                 print("Assign function to:", assignment)
@@ -289,8 +289,8 @@ class Code_analyzer:
             print()
 
 if __name__ == "__main__":
-    code_file = "1b-basic-flow"
-    # code_file = "2-expr-binary-ops"
+    # code_file = "1b-basic-flow"
+    code_file = "2-expr-binary-ops"
     patterns = f"slices/{code_file}.patterns.json"
     code = f"slices/{code_file}.py"
     analyzer = Code_analyzer(patterns, code)
