@@ -40,19 +40,23 @@ def traverse_ast(node, current_trace, all_traces):
     if isinstance(node, ast.Module):
         for child_node in node.body:
             traverse_ast(child_node, current_trace, all_traces)
-    
-    elif isinstance(node, (ast.Expr, ast.Assign)):
-        current_trace.add_statement(node.__class__.__name__)
-        # for target in node.targets:
-        #     traverse_ast(target, current_trace, all_traces)
+
+
+    elif isinstance(node, ast.Expr):
+        current_trace.add_statement(node)
         traverse_ast(node.value, current_trace, all_traces)
 
+    elif isinstance(node, ast.Assign):
+        current_trace.add_statement(node)
+        for target in node.targets:
+            traverse_ast(target, current_trace, all_traces)
+        traverse_ast(node.value, current_trace, all_traces)
 
     elif isinstance(node, (ast.If)):
         else_trace = current_trace.deep_copy()
 
         # trace for if
-        current_trace.add_statement(node.__class__.__name__)
+        current_trace.add_statement(node)
         for body_child_node in node.body:
             traverse_ast(body_child_node, current_trace, all_traces)
         
@@ -60,7 +64,7 @@ def traverse_ast(node, current_trace, all_traces):
         current_trace.add_child_trace(else_trace)
         all_traces.append(else_trace)
         if len(node.orelse) > 0:
-            else_trace.add_statement("Else")
+            else_trace.add_statement(node)
 
             for orelse_child_node in node.orelse:
                 traverse_ast(orelse_child_node, else_trace, all_traces)
@@ -72,35 +76,35 @@ def traverse_ast(node, current_trace, all_traces):
             all_traces.append(while_trace)
 
             for _ in range(i):
-                while_trace.add_statement("While")
+                while_trace.add_statement(node)
                 for child_node in node.body:
                     traverse_ast(child_node, while_trace, all_traces)
     
     # Expressions
     elif isinstance(node, ast.Constant):
-        current_trace.add_statement(f"{node.__class__.__name__}: {node.value}")
+        current_trace.add_statement(node)
 
     elif isinstance(node, ast.Name):
-        current_trace.add_statement(f"{node.__class__.__name__}: {node.id}")
+        current_trace.add_statement(node)
 
     elif isinstance(node, ast.BinOp):
-        current_trace.add_statement(node.__class__.__name__)
+        current_trace.add_statement(node)
         traverse_ast(node.left, current_trace, all_traces)
         traverse_ast(node.op, current_trace, all_traces)
         traverse_ast(node.right, current_trace, all_traces)
 
     elif isinstance(node, ast.UnaryOp):
-        current_trace.add_statement(node.__class__.__name__)
+        current_trace.add_statement(node)
         traverse_ast(node.op, current_trace, all_traces)
         traverse_ast(node.operand, current_trace, all_traces)
 
     elif isinstance(node, ast.BoolOp):
-        current_trace.add_statement(node.__class__.__name__)
+        current_trace.add_statement(node)
         for value in node.values:
             traverse_ast(value, current_trace, all_traces)
 
     elif isinstance(node, ast.Compare):
-        current_trace.add_statement(node.__class__.__name__)
+        current_trace.add_statement(node)
         traverse_ast(node.left, current_trace, all_traces)
         for op in node.ops:
             traverse_ast(op, current_trace, all_traces)
@@ -108,13 +112,13 @@ def traverse_ast(node, current_trace, all_traces):
             traverse_ast(comparator, current_trace, all_traces)
 
     elif isinstance(node, ast.Call):
-        current_trace.add_statement(node.__class__.__name__)
+        current_trace.add_statement(node)
         traverse_ast(node.func, current_trace, all_traces)
         for arg in node.args:
             traverse_ast(arg, current_trace, all_traces)
 
     elif isinstance(node, ast.Attribute):
-        current_trace.add_statement(f"{node.__class__.__name__}: {node.attr}")
+        current_trace.add_statement(node)
         traverse_ast(node.value, current_trace, all_traces)
 
 def get_traces(node):
@@ -129,20 +133,38 @@ def get_traces(node):
 
 if __name__ == "__main__":
     # get source code
-    # filename = '../slices/1b-basic-flow.py'
-    filename = "../slices/3c-expr-attributes.py"
-    filename = "../slices/9-regions-guards.py"
+    filename = '../slices/1a-basic-flow.py'
+    # filename = "../slices/3c-expr-attributes.py"
+    # filename = "../slices/9-regions-guards.py"
+    # filename = "../slices/4a-conds-branching.py"
+    # filename = "../slices/5a-loops-unfolding.py"
+    # filename = "../slices/7-conds-implicit.py"
+    # filename = "../slices/3a-expr-func-calls.py"
+    # filename = "../slices/3b-expr-func-calls.py"
     with open(filename, 'r') as file:
         source = file.read()
 
     # create ast and json objects
     tree = ast.parse(source, filename)
     json_dict = export_dict(tree)
-    # print(json_dict)
+    # print(type(json_dict))
     
     # lab 3 exercise 2
     # PrintNodeInfoVisitor().visit(tree)
 
     # lab 3 exercise 3
+
     for trace in get_traces(tree):
-        print(trace)
+        for i, statement in enumerate(trace.statements):
+            is_last_statement = (i == len(trace.statements) - 1)
+            end = "" if is_last_statement else " -> "
+            if isinstance(statement, ast.Constant):
+                print(f"{statement.__class__.__name__}: {statement.value}", end=end)
+            elif isinstance(statement, ast.Name):
+                print(f"{statement.__class__.__name__}: {statement.id}", end=end)
+            elif isinstance(statement, ast.Attribute):
+                print(f"{statement.__class__.__name__}: {statement.attr}", end=end)
+            else:
+                print(statement.__class__.__name__, end=end)
+        print()
+    

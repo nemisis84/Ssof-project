@@ -20,8 +20,12 @@ class MultiLabel:
     def combine(self, other_multilabel):
         result = MultiLabel(self.get_pattern_to_label_mapping())
         for pattern_name, (pattern, label) in other_multilabel.get_pattern_to_label_mapping().items():
-            result.add_label(pattern, label)
-            
+            if pattern_name in self.get_pattern_names():
+                new_label = self.get_label(pattern).combine(label)
+                result.pattern_to_label_mapping[pattern.get_name()] = (pattern, new_label)
+            else:
+                result.add_label(pattern, label)
+        
         return result
 
     def deep_copy(self):

@@ -33,19 +33,27 @@ class Vulnerabilities():
             
             if sink in pattern.get_sinks():
                 sources = label.get_sources()
+
                 for source, sanitizers in sources:
                     vulnerability = {}
                     vulnerability["vulnerability"] = self.name_helper(pattern.get_name())
                     vulnerability["source"] = source
                     vulnerability["sink"] = sink
-                    vulnerability["sanitized_flows"] = sanitizers
+                    vulnerability["sanitized_flows"] = sanitizers.copy()
                     if not vulnerability["sanitized_flows"]:
                         vulnerability["unsanitized_flows"] = "Yes"
                     else:
                         # TODO: Find out how to decide this
-                        vulnerability["unsanitized_flows"] = "Undecided"
-                    self.vulnerabilities.append(vulnerability)
-                break
+                        vulnerability["unsanitized_flows"] = "No"
+                    
+                    vulnerability_reported = False
+                    for vul in self.get_all_vulnerabilities():
+                        if vul["source"] == vulnerability["source"] and vul["sink"] == vulnerability["sink"]:
+                            vulnerability_reported = True
+                    
+                    if not vulnerability_reported:
+                        self.vulnerabilities.append(vulnerability)
+                        print(f"Report vulnerability with sink: {sink} and source: {source}")
 
 if __name__ == "__main__":
     from Label import Label
