@@ -26,14 +26,12 @@ class Vulnerabilities():
         return pattern_name + "_" + str(counter)
 
     def report_vulnerability(self, sink, multilabel):
-        
-        
-
         for (pattern, label) in multilabel.get_pattern_to_label_mapping().values():
             
             if sink in pattern.get_sinks():
                 sources = label.get_sources()
 
+                print(sources)
                 for source, sanitizers in sources:
                     vulnerability = {}
                     vulnerability["vulnerability"] = self.name_helper(pattern.get_name())
