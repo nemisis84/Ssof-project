@@ -96,7 +96,7 @@ class Code_analyzer:
                 
                 if pattern_source: # Is value_variable_name a source?
                     pattern_object = self.policy.get_pattern(pattern_source[0])
-                    label = Label([(value_variable_name, {})])
+                    label = Label([(value_variable_name, set())])
                     multi_label = MultiLabel({pattern_object.get_name(): (pattern_object, label)})
                     print("Assign name to", variable_name, value_variable_name)
                     self.multi_labelling.add_multilabel(variable_name, multi_label)
@@ -104,10 +104,10 @@ class Code_analyzer:
                 # If value_variable_name is assigned before?
                 if value_variable_name in self.multi_labelling.get_multi_labels():
                     value_multi_label = self.multi_labelling.get_multi_label(value_variable_name)
-                    if variable_name in self.multi_labelling.get_multi_labels() and pattern_source: # Is the variable_name assigned assigned to the current value_variable_name?
+                    if variable_name in self.multi_labelling.get_multi_labels() and pattern_source: # Is the variable_name assigned assigned to the current value_variable_name (edge case handling)?
                         new_multi_label = self.multi_labelling.get_multi_label(variable_name).combine(value_multi_label) # Combine
                         self.multi_labelling.multi_labels[variable_name] = new_multi_label
-                    else:
+                    else: # Overwrite variable_name entry
                         self.multi_labelling.mutator(value_variable_name, variable_name)
 
                 
@@ -163,10 +163,20 @@ class Code_analyzer:
             return node
 
         elif isinstance(node, ast.BinOp):
+            # We need to report names, and ignore constants. It needs to be recursive. 
             current_trace.add_statement(node)
-            self.traverse_ast(node.left, current_trace, all_traces)
-            self.traverse_ast(node.op, current_trace, all_traces)
-            self.traverse_ast(node.right, current_trace, all_traces)
+            left_node = self.traverse_ast(node.left, current_trace, all_traces)
+            node_op = self.traverse_ast(node.op, current_trace, all_traces)
+            rigth_node = self.traverse_ast(node.right, current_trace, all_traces)
+            names = []
+
+            for node in [left_node, node_op, rigth_node]:
+                if isinstance(node, ast.Name):
+                    names.append(node)
+                if type(node) == list:
+                    names.extend(node)
+            
+            return names
 
         elif isinstance(node, ast.UnaryOp):
             current_trace.add_statement(node)
@@ -192,39 +202,69 @@ class Code_analyzer:
             call_name = node.func.id
             pattern_sink = self.is_sink(call_name)
             pattern_sanitizer = self.is_sanitizer(call_name)
+            
+            multi_label = MultiLabel()
 
             if not node.args and self.is_source(call_name): # No arguments in call. f.ex. f()
                 pattern_source = self.is_source(call_name)
                 pattern_object = self.policy.get_pattern(pattern_source[0]) # assumes only one matching pattern
                 is_sanitized = self.has_matching_object(pattern_sanitizer, pattern_source)
-                label = Label([(call_name, {})])
+                label = Label([(call_name, set())])
                 multi_label = MultiLabel({pattern_object.get_name(): (pattern_object, label)})
+                print(f"Assign function {call_name} to:", assignment)
+                self.multi_labelling.add_multilabel(assignment, multi_label)
+                self.report(assignment, multi_label)
+                
+                return
+            
+            inner_nodes = []
             for arg in node.args: # Loop over arguments f(a,b,...)
                 inner_node = self.traverse_ast(arg, current_trace, all_traces)
-                call_input = inner_node.id
+                if type(inner_node) != list and inner_node:
+                    inner_node = [inner_node]
+                elif not inner_node:
+                    inner_node = []
+                inner_nodes.extend(inner_node)
 
+            for name in inner_nodes:
+
+                call_input = name.id
+                pattern_source = self.is_source(call_input)
+                
                 # Is input an assigned variable
                 if call_input in self.multi_labelling.get_multi_labels():
-                    multi_label = self.multi_labelling.get_multi_label(call_input)
-                    
-                else:
+                    add_multi_label = self.multi_labelling.get_multi_label(call_input)
+                    multi_label = multi_label.combine(add_multi_label)
+
+                if pattern_source:
                     pattern_source = self.is_source(call_input)
                     pattern_object = self.policy.get_pattern(pattern_source[0]) # assumes only one matching pattern
                     is_sanitized = self.has_matching_object(pattern_sanitizer, pattern_source)
                                             
-                    label = Label([(call_input, {})]) if is_sanitized else Label([(call_input, {call_name})])
-                    multi_label = MultiLabel({pattern_object.get_name(): (pattern_object, label)})
-                    
-                if pattern_sink:
-                    print(f"Reporting function: {call_name}")
-                    self.report(call_name, multi_label)
+                    label = Label([(call_input, {call_name})]) if is_sanitized else Label([(call_input, set())])
+                    add_multi_label = MultiLabel({pattern_object.get_name(): (pattern_object, label)})
+                    multi_label = multi_label.combine(add_multi_label)
+
+                if pattern_sanitizer:                    
+                    if call_input in self.multi_labelling.get_multi_labels():
+                        this_multi_label = self.multi_labelling.get_multi_label(call_input)
+                        labels = this_multi_label.get_pattern_to_label_mapping()
+                        for (pattern, label) in labels.values():
+                            if pattern.get_name() == pattern_sanitizer[0]:
+                                source = label.get_sources()[0][0] # Assumes only one source per label
+
+                                label.add_sanitizer(source, call_name)
+                
+
+            if pattern_sink:
+                print(f"Reporting function: {call_name}")
+
+                self.report(call_name, multi_label)
 
             if assignment:
                 print("Assign function to:", assignment)
                 self.multi_labelling.add_multilabel(assignment, multi_label)
             
-            
-
         elif isinstance(node, ast.Attribute):
             # TODO: what if a sink calls on an attribute which is a source. 
             current_trace.add_statement(node)
@@ -246,7 +286,8 @@ class Code_analyzer:
             print()
 
 if __name__ == "__main__":
-    code_file = "1b-basic-flow"
+    # code_file = "1b-basic-flow"
+    code_file = "2-expr-binary-ops"
     patterns = f"../slices/{code_file}.patterns.json"
     code = f"../slices/{code_file}.py"
     analyzer = Code_analyzer(patterns, code)
