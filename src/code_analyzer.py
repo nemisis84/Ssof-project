@@ -52,10 +52,10 @@ class Code_analyzer:
         # Assuming `input` is a string representing a variable or function name
         return self.policy.get_names_with_sink(input)
 
-    def report(self, variable_name, multi_label):
+    def report(self, variable_name, multi_label, sink_lineno = None):
         if self.is_sink(variable_name):
             illegal_flow = self.policy.corresponding_illegal_flow(variable_name, multi_label)
-            self.vulnerability.report_vulnerability(variable_name, illegal_flow)
+            self.vulnerability.report_vulnerability(variable_name, illegal_flow, sink_lineno)
         else:
             print("No illegal flow found")
  
@@ -96,8 +96,9 @@ class Code_analyzer:
                 
                 if pattern_source: # Is value_variable_name a source?
                     pattern_object = self.policy.get_pattern(pattern_source[0])
-                    label = Label([(value_variable_name, set())])
-                    multi_label = MultiLabel({pattern_object.get_name(): (pattern_object, label)})
+                    label = Label([(value_variable_name, set(), node.lineno)])
+                    # print("aaaa :" + str(value_variable_name) + " " + str(node.lineno))
+                    multi_label = MultiLabel(node.lineno, {pattern_object.get_name(): (pattern_object, label)})
                     print("Assign name to", variable_name, value_variable_name)
                     self.multi_labelling.add_multilabel(variable_name, multi_label)
                 
@@ -114,7 +115,7 @@ class Code_analyzer:
                 if self.is_sink(variable_name): # Report
                     print(f"Reporting assignment: {variable_name}")
                     multi_label = self.multi_labelling.get_multi_label(variable_name)
-                    self.report(variable_name, multi_label)
+                    self.report(variable_name, multi_label, node.lineno)
 
             elif isinstance(node.value, ast.Constant):
                 print("Assign constant to:", variable_name)
@@ -203,14 +204,16 @@ class Code_analyzer:
             pattern_sink = self.is_sink(call_name)
             pattern_sanitizer = self.is_sanitizer(call_name)
             
+            
             multi_label = MultiLabel()
 
             if not node.args and self.is_source(call_name): # No arguments in call. f.ex. f()
                 pattern_source = self.is_source(call_name)
                 pattern_object = self.policy.get_pattern(pattern_source[0]) # assumes only one matching pattern
                 is_sanitized = self.has_matching_object(pattern_sanitizer, pattern_source)
-                label = Label([(call_name, set())])
-                multi_label = MultiLabel({pattern_object.get_name(): (pattern_object, label)})
+                label = Label([(call_name, set(), node.lineno)])
+                print("aaaa :" + " " + str(node.lineno))
+                multi_label = MultiLabel(node.lineno, {pattern_object.get_name(): (pattern_object, label)})
                 print(f"Assign function {call_name} to:", assignment)
                 self.multi_labelling.add_multilabel(assignment, multi_label)
                 self.report(assignment, multi_label)
@@ -241,8 +244,8 @@ class Code_analyzer:
                     pattern_object = self.policy.get_pattern(pattern_source[0]) # assumes only one matching pattern
                     is_sanitized = self.has_matching_object(pattern_sanitizer, pattern_source)
                                             
-                    label = Label([(call_input, {call_name})]) if is_sanitized else Label([(call_input, set())])
-                    add_multi_label = MultiLabel({pattern_object.get_name(): (pattern_object, label)})
+                    label = Label([(call_input, {call_name}, node.lineno)]) if is_sanitized else Label([(call_input, set(), node.lineno)])
+                    add_multi_label = MultiLabel(node.lineno, {pattern_object.get_name(): (pattern_object, label)})
                     multi_label = multi_label.combine(add_multi_label)
 
                 if pattern_sanitizer:                    
@@ -286,10 +289,10 @@ class Code_analyzer:
             print()
 
 if __name__ == "__main__":
-    # code_file = "1b-basic-flow"
-    code_file = "2-expr-binary-ops"
-    patterns = f"../slices/{code_file}.patterns.json"
-    code = f"../slices/{code_file}.py"
+    code_file = "1b-basic-flow"
+    # code_file = "2-expr-binary-ops"
+    patterns = f"slices/{code_file}.patterns.json"
+    code = f"slices/{code_file}.py"
     analyzer = Code_analyzer(patterns, code)
     traces = analyzer.walk_tree()
     for vulnerabilities in analyzer.vulnerability.get_all_vulnerabilities():

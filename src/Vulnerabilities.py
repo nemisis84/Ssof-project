@@ -25,7 +25,7 @@ class Vulnerabilities():
 
         return pattern_name + "_" + str(counter)
 
-    def report_vulnerability(self, sink, multilabel):
+    def report_vulnerability(self, sink, multilabel, sink_lineno):
         
         
 
@@ -34,11 +34,11 @@ class Vulnerabilities():
             if sink in pattern.get_sinks():
                 sources = label.get_sources()
 
-                for source, sanitizers in sources:
+                for source, sanitizers, lineno in sources:
                     vulnerability = {}
                     vulnerability["vulnerability"] = self.name_helper(pattern.get_name())
-                    vulnerability["source"] = source
-                    vulnerability["sink"] = sink
+                    vulnerability["source"] = (source, lineno)
+                    vulnerability["sink"] = (sink, sink_lineno)
                     vulnerability["sanitized_flows"] = sanitizers.copy()
                     if not vulnerability["sanitized_flows"]:
                         vulnerability["unsanitized_flows"] = "Yes"

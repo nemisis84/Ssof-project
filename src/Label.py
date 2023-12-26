@@ -21,6 +21,9 @@ class Label:
     def get_source_names(self):
         # Only grabs source_names
         return list(map(lambda x: x[0], self.get_sources()))
+    
+    def get_linenos(self):
+        return list(map(lambda x: x[2], self.get_sources()))
 
     def get_sanitizers(self, source):
         for sor, san in self._sources:
@@ -34,11 +37,13 @@ class Label:
     
     def deep_copy(self):
         result_sources = []
-        for source, sanitizers in self._sources:
+        for source, sanitizers, lineno in self._sources:
             result_sanitizers = set()
             for sanitizer in sanitizers:
                 result_sanitizers.add(sanitizer)
             
             result_sources.append((source, result_sanitizers))
+            #Might be wrong
+            result_sources.append((result_sources, lineno))
         
         return Label(result_sources)
