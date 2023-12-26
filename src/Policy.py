@@ -20,6 +20,14 @@ class Policy:
     def get_names(self):
         return list(map(lambda x: x.get_name(), self._patterns))
 
+    def get_relevant_patterns(self, variable_name, type):
+        if type == "source":
+            return [pattern for pattern in self._patterns if pattern.contains_source(variable_name)]
+        elif type == "sanitizer":
+            return [pattern for pattern in self._patterns if pattern.contains_sanitizer(variable_name)]
+        elif type == "sink":
+            return [pattern for pattern in self._patterns if pattern.contains_sink(variable_name)]
+
     def get_names_with_source(self, source):
         return [pattern.get_name() for pattern in self._patterns if pattern.contains_source(source)]
 

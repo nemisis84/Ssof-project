@@ -26,9 +26,6 @@ class Vulnerabilities():
         return pattern_name + "_" + str(counter)
 
     def report_vulnerability(self, sink, multilabel, sink_lineno):
-        
-        
-
         for (pattern, label) in multilabel.get_pattern_to_label_mapping().values():
             
             if sink in pattern.get_sinks():
