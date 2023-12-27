@@ -16,6 +16,9 @@ class Policy:
             if pattern.get_name() == pattern_name:
                 return pattern
         return None
+    
+    def get_patterns(self):
+        return self._patterns
 
     def get_names(self):
         return list(map(lambda x: x.get_name(), self._patterns))

@@ -17,6 +17,8 @@ class Code_analyzer:
         self.multi_labelling = MultiLabelling()
         self.vulnerability = Vulnerabilities()
 
+        self.unassigned_variables = []
+
     def import_tree(self, filename):
         with open(filename, 'r') as file:
             source = file.read()
@@ -40,17 +42,21 @@ class Code_analyzer:
         policy = Policy(patterns)
         return policy
 
-    def is_source(self, input):
-        # Assuming `input` is a string representing a variable or function name
-        return self.policy.get_names_with_source(input)
+    def get_relevant_source_patterns(self, name):
+        # any non-instantiated variable is to be considered as an entry point to all vulnerabilities
+        if name in self.unassigned_variables:
+            return self.policy.get_patterns()
+        
+        return self.policy.get_relevant_patterns(name, "source")
+    
+    def get_relevant_sink_patterns(self, name):
+        return self.policy.get_relevant_patterns(name, "sink")
+    
+    def get_relevant_sanitizer_patterns(self, name):
+        return self.policy.get_relevant_patterns(name, "sanitizer")
 
-    def is_sanitizer(self, input):
-        # Assuming `input` is a string representing a variable or function name
-        return self.policy.get_names_with_sanitizer(input)
-
-    def is_sink(self, input):
-        # Assuming `input` is a string representing a variable or function name
-        return self.policy.get_names_with_sink(input)
+    def is_sink(self, name):
+        return len(self.get_relevant_sink_patterns(name)) > 0
 
     def report(self, variable_name, multi_label, sink_lineno = None):
         if self.is_sink(variable_name):
@@ -58,7 +64,21 @@ class Code_analyzer:
             self.vulnerability.report_vulnerability(variable_name, illegal_flow, sink_lineno)
         else:
             print("No illegal flow found")
- 
+
+    def is_unassigned_variable(self, trace, node):
+        parent_node = trace.get_nodes()[-1]
+
+        # name of function call
+        if isinstance(parent_node, ast.Call) or isinstance(parent_node, ast.Attribute):
+            return False
+        
+        unassigned = True
+        for trace_node in trace.get_nodes():
+            if isinstance(trace_node, ast.Assign):
+                if trace_node.targets[0].id == node.id:
+                    unassigned = False
+        
+        return unassigned
 
     def has_matching_object(self, list1, list2):
         for item1 in list1:
@@ -71,7 +91,7 @@ class Code_analyzer:
         all_traces = []
         initial_trace = ExecutionTrace()
         all_traces.append(initial_trace)
-        self.traverse_ast(self.tree, initial_trace, all_traces)
+        self.traverse_ast(self.tree, initial_trace, all_traces, [])
         return all_traces
 
     def traverse_ast(self, node, current_trace, all_traces, assignment = False):
@@ -89,19 +109,19 @@ class Code_analyzer:
         #============================#
 
         elif isinstance(node, ast.Expr):
-            current_trace.add_statement(node)
+            current_trace.add_node(node)
             self.traverse_ast(node.value, current_trace, all_traces)
 
         elif isinstance(node, ast.Assign):
             
             # assume only one left hand variable in assignments
-            left_variable_name = node.targets[0].id 
+            left_variable_name = node.targets[0].id
 
             # if right hand part of assignment is a variable
             if isinstance(node.value, ast.Name):
                 right_variable_name = node.value.id
 
-                input_source_patterns = self.policy.get_relevant_patterns(right_variable_name, "source")
+                input_source_patterns = self.get_relevant_source_patterns(right_variable_name)
                 
                 # if right hand variable is a source in one of the patterns
                 if len(input_source_patterns) > 0:
@@ -132,7 +152,7 @@ class Code_analyzer:
                 print("Assign constant to:", left_variable_name)
                 self.multi_labelling.add_multilabel(left_variable_name, MultiLabel())
 
-            current_trace.add_statement(node)
+            current_trace.add_node(node)
             for target in node.targets: 
                 self.traverse_ast(target, current_trace, all_traces)
             self.traverse_ast(node.value, current_trace, all_traces, assignment=left_variable_name) # Continue traversal
@@ -142,7 +162,7 @@ class Code_analyzer:
             else_trace = current_trace.deep_copy()
     
             # trace for if
-            current_trace.add_statement(node)
+            current_trace.add_node(node)
             for body_child_node in node.body:
                 self.traverse_ast(body_child_node, current_trace, all_traces)
             
@@ -150,7 +170,7 @@ class Code_analyzer:
             current_trace.add_child_trace(else_trace)
             all_traces.append(else_trace)
             if len(node.orelse) > 0:
-                else_trace.add_statement(node)
+                else_trace.add_node(node)
 
                 for orelse_child_node in node.orelse:
                     self.traverse_ast(orelse_child_node, else_trace, all_traces)
@@ -162,7 +182,7 @@ class Code_analyzer:
                 all_traces.append(while_trace)
 
                 for _ in range(i):
-                    while_trace.add_statement(node)
+                    while_trace.add_node(node)
                     for child_node in node.body:
                         self.traverse_ast(child_node, while_trace, all_traces)
         
@@ -171,15 +191,17 @@ class Code_analyzer:
         #============================#
                         
         elif isinstance(node, ast.Constant):
-            current_trace.add_statement(node)
+            current_trace.add_node(node)
 
         elif isinstance(node, ast.Name):
-            current_trace.add_statement(node)
+            if self.is_unassigned_variable(current_trace, node):
+                self.unassigned_variables.append(node.id)
+            current_trace.add_node(node)
             return node
 
         elif isinstance(node, ast.BinOp):
             # We need to report names, and ignore constants. It needs to be recursive. 
-            current_trace.add_statement(node)
+            current_trace.add_node(node)
             left_node = self.traverse_ast(node.left, current_trace, all_traces)
             node_op = self.traverse_ast(node.op, current_trace, all_traces)
             rigth_node = self.traverse_ast(node.right, current_trace, all_traces)
@@ -194,17 +216,17 @@ class Code_analyzer:
             return names
 
         elif isinstance(node, ast.UnaryOp):
-            current_trace.add_statement(node)
+            current_trace.add_node(node)
             self.traverse_ast(node.op, current_trace, all_traces)
             self.traverse_ast(node.operand, current_trace, all_traces)
 
         elif isinstance(node, ast.BoolOp):
-            current_trace.add_statement(node)
+            current_trace.add_node(node)
             for value in node.values:
                 self.traverse_ast(value, current_trace, all_traces)
 
         elif isinstance(node, ast.Compare):
-            current_trace.add_statement(node)
+            current_trace.add_node(node)
             self.traverse_ast(node.left, current_trace, all_traces)
             for op in node.ops:
                 self.traverse_ast(op, current_trace, all_traces)
@@ -212,13 +234,14 @@ class Code_analyzer:
                 self.traverse_ast(comparator, current_trace, all_traces)
 
         elif isinstance(node, ast.Call):
-            current_trace.add_statement(node)
+            current_trace.add_node(node)
             self.traverse_ast(node.func, current_trace, all_traces)
+            
             call_name = node.func.id
 
-            sink_patterns = self.policy.get_relevant_patterns(call_name, "sink")
-            sanitizer_patterns = self.policy.get_relevant_patterns(call_name, "sanitizer")
-            input_source_patterns = self.policy.get_relevant_patterns(call_name, "source")
+            input_source_patterns = self.get_relevant_source_patterns(call_name)
+            sink_patterns = self.get_relevant_sink_patterns(call_name)
+            sanitizer_patterns = self.get_relevant_sanitizer_patterns(call_name)
             
             multi_label = MultiLabel()
 
@@ -247,7 +270,7 @@ class Code_analyzer:
             for name in inner_nodes:
 
                 call_input = name.id
-                input_source_patterns = self.policy.get_relevant_patterns(call_name, "source")
+                input_source_patterns = self.get_relevant_source_patterns(call_input)
 
                 # call input is variable that was left hand part of assigment earlier
                 if call_input in self.multi_labelling.get_multi_labels():
@@ -278,6 +301,7 @@ class Code_analyzer:
                                     source = label_info[0]
                                     label.add_sanitizer(source, call_name)
 
+            # call name is sink
             if len(sink_patterns) > 0:
                 print(f"Reporting function: {call_name}")
 
@@ -289,27 +313,27 @@ class Code_analyzer:
             
         elif isinstance(node, ast.Attribute):
             # TODO: what if a sink calls on an attribute which is a source. 
-            current_trace.add_statement(node)
+            current_trace.add_node(node)
             self.traverse_ast(node.value, current_trace, all_traces)
     
     def pretty_print_traces(self, traces):
         for trace in traces:
-            for i, statement in enumerate(trace.statements):
-                is_last_statement = (i == len(trace.statements) - 1)
-                end = "" if is_last_statement else " -> "
-                if isinstance(statement, ast.Constant):
-                    print(f"{statement.__class__.__name__}: {statement.value}", end=end)
-                elif isinstance(statement, ast.Name):
-                    print(f"{statement.__class__.__name__}: {statement.id}", end=end)
-                elif isinstance(statement, ast.Attribute):
-                    print(f"{statement.__class__.__name__}: {statement.attr}", end=end)
+            for i, node in enumerate(trace.nodes):
+                is_last_node = (i == len(trace.nodes) - 1)
+                end = "" if is_last_node else " -> "
+                if isinstance(node, ast.Constant):
+                    print(f"{node.__class__.__name__}: {node.value}", end=end)
+                elif isinstance(node, ast.Name):
+                    print(f"{node.__class__.__name__}: {node.id}", end=end)
+                elif isinstance(node, ast.Attribute):
+                    print(f"{node.__class__.__name__}: {node.attr}", end=end)
                 else:
-                    print(statement.__class__.__name__, end=end)
+                    print(node.__class__.__name__, end=end)
             print()
 
 if __name__ == "__main__":
     # code_file = "1b-basic-flow"
-    code_file = "1b-basic-flow"
+    code_file = "2-expr-binary-ops"
     patterns = f"../slices/{code_file}.patterns.json"
     code = f"../slices/{code_file}.py"
     analyzer = Code_analyzer(patterns, code)

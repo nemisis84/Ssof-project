@@ -15,25 +15,28 @@ class PrintNodeInfoVisitor(ast.NodeVisitor):
 # lab 3 exercise 3
 class ExecutionTrace:
     def __init__(self):
-        self.statements = []
+        self.nodes = []
         self.child_traces = set()
     
     def add_child_trace(self, trace):
         self.child_traces.add(trace)
 
-    def add_statement(self, statement):
-        self.statements.append(statement)
+    def add_node(self, statement):
+        self.nodes.append(statement)
         for child in self.child_traces:
-            child.add_statement(statement)
+            child.add_node(statement)
+
+    def get_nodes(self):
+        return self.nodes
 
     def deep_copy(self):
         result = ExecutionTrace()
-        for statement in self.statements:
-            result.add_statement(statement)
+        for statement in self.nodes:
+            result.add_node(statement)
         return result
 
     def __str__(self):
-        return ' -> '.join(map(str, self.statements))
+        return ' -> '.join(map(str, self.nodes))
 
 def traverse_ast(node, current_trace, all_traces):
 
@@ -43,11 +46,11 @@ def traverse_ast(node, current_trace, all_traces):
 
 
     elif isinstance(node, ast.Expr):
-        current_trace.add_statement(node)
+        current_trace.add_node(node)
         traverse_ast(node.value, current_trace, all_traces)
 
     elif isinstance(node, ast.Assign):
-        current_trace.add_statement(node)
+        current_trace.add_node(node)
         for target in node.targets:
             traverse_ast(target, current_trace, all_traces)
         traverse_ast(node.value, current_trace, all_traces)
@@ -56,7 +59,7 @@ def traverse_ast(node, current_trace, all_traces):
         else_trace = current_trace.deep_copy()
 
         # trace for if
-        current_trace.add_statement(node)
+        current_trace.add_node(node)
         for body_child_node in node.body:
             traverse_ast(body_child_node, current_trace, all_traces)
         
@@ -64,7 +67,7 @@ def traverse_ast(node, current_trace, all_traces):
         current_trace.add_child_trace(else_trace)
         all_traces.append(else_trace)
         if len(node.orelse) > 0:
-            else_trace.add_statement(node)
+            else_trace.add_node(node)
 
             for orelse_child_node in node.orelse:
                 traverse_ast(orelse_child_node, else_trace, all_traces)
@@ -76,35 +79,35 @@ def traverse_ast(node, current_trace, all_traces):
             all_traces.append(while_trace)
 
             for _ in range(i):
-                while_trace.add_statement(node)
+                while_trace.add_node(node)
                 for child_node in node.body:
                     traverse_ast(child_node, while_trace, all_traces)
     
     # Expressions
     elif isinstance(node, ast.Constant):
-        current_trace.add_statement(node)
+        current_trace.add_node(node)
 
     elif isinstance(node, ast.Name):
-        current_trace.add_statement(node)
+        current_trace.add_node(node)
 
     elif isinstance(node, ast.BinOp):
-        current_trace.add_statement(node)
+        current_trace.add_node(node)
         traverse_ast(node.left, current_trace, all_traces)
         traverse_ast(node.op, current_trace, all_traces)
         traverse_ast(node.right, current_trace, all_traces)
 
     elif isinstance(node, ast.UnaryOp):
-        current_trace.add_statement(node)
+        current_trace.add_node(node)
         traverse_ast(node.op, current_trace, all_traces)
         traverse_ast(node.operand, current_trace, all_traces)
 
     elif isinstance(node, ast.BoolOp):
-        current_trace.add_statement(node)
+        current_trace.add_node(node)
         for value in node.values:
             traverse_ast(value, current_trace, all_traces)
 
     elif isinstance(node, ast.Compare):
-        current_trace.add_statement(node)
+        current_trace.add_node(node)
         traverse_ast(node.left, current_trace, all_traces)
         for op in node.ops:
             traverse_ast(op, current_trace, all_traces)
@@ -112,13 +115,13 @@ def traverse_ast(node, current_trace, all_traces):
             traverse_ast(comparator, current_trace, all_traces)
 
     elif isinstance(node, ast.Call):
-        current_trace.add_statement(node)
+        current_trace.add_node(node)
         traverse_ast(node.func, current_trace, all_traces)
         for arg in node.args:
             traverse_ast(arg, current_trace, all_traces)
 
     elif isinstance(node, ast.Attribute):
-        current_trace.add_statement(node)
+        current_trace.add_node(node)
         traverse_ast(node.value, current_trace, all_traces)
 
 def get_traces(node):
@@ -133,7 +136,7 @@ def get_traces(node):
 
 if __name__ == "__main__":
     # get source code
-    filename = '../slices/1b-basic-flow.py'
+    filename = '../slices/2-expr-binary-ops.py'
     # filename = "../slices/3c-expr-attributes.py"
     # filename = "../slices/9-regions-guards.py"
     # filename = "../slices/4a-conds-branching.py"
