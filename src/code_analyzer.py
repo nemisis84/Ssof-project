@@ -68,15 +68,17 @@ class Code_analyzer:
     def is_unassigned_variable(self, trace, node):
         parent_node = trace.get_nodes()[-1]
 
-        # name of function call
+        # function call or attribute is not an unassigned variable
         if isinstance(parent_node, ast.Call) or isinstance(parent_node, ast.Attribute):
             return False
         
+        # variable is assigned if target of ast.Assign node
         unassigned = True
         for trace_node in trace.get_nodes():
             if isinstance(trace_node, ast.Assign):
-                if trace_node.targets[0].id == node.id:
-                    unassigned = False
+                for target in trace_node.targets:
+                    if target.id == node.id:
+                        unassigned = False
         
         return unassigned
 
