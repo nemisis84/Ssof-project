@@ -133,7 +133,7 @@ def get_traces(node):
 
 if __name__ == "__main__":
     # get source code
-    filename = '../slices/1a-basic-flow.py'
+    filename = '../slices/1b-basic-flow.py'
     # filename = "../slices/3c-expr-attributes.py"
     # filename = "../slices/9-regions-guards.py"
     # filename = "../slices/4a-conds-branching.py"
@@ -147,24 +147,24 @@ if __name__ == "__main__":
     # create ast and json objects
     tree = ast.parse(source, filename)
     json_dict = export_dict(tree)
-    # print(type(json_dict))
+    print(json_dict)
     
     # lab 3 exercise 2
     # PrintNodeInfoVisitor().visit(tree)
 
     # lab 3 exercise 3
 
-    for trace in get_traces(tree):
-        for i, statement in enumerate(trace.statements):
-            is_last_statement = (i == len(trace.statements) - 1)
-            end = "" if is_last_statement else " -> "
-            if isinstance(statement, ast.Constant):
-                print(f"{statement.__class__.__name__}: {statement.value}", end=end)
-            elif isinstance(statement, ast.Name):
-                print(f"{statement.__class__.__name__}: {statement.id}", end=end)
-            elif isinstance(statement, ast.Attribute):
-                print(f"{statement.__class__.__name__}: {statement.attr}", end=end)
-            else:
-                print(statement.__class__.__name__, end=end)
-        print()
+    # for trace in get_traces(tree):
+    #     for i, statement in enumerate(trace.statements):
+    #         is_last_statement = (i == len(trace.statements) - 1)
+    #         end = "" if is_last_statement else " -> "
+    #         if isinstance(statement, ast.Constant):
+    #             print(f"{statement.__class__.__name__}: {statement.value}", end=end)
+    #         elif isinstance(statement, ast.Name):
+    #             print(f"{statement.__class__.__name__}: {statement.id}", end=end)
+    #         elif isinstance(statement, ast.Attribute):
+    #             print(f"{statement.__class__.__name__}: {statement.attr}", end=end)
+    #         else:
+    #             print(statement.__class__.__name__, end=end)
+    #     print()
     
