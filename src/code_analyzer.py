@@ -17,8 +17,6 @@ class Code_analyzer:
         self.multi_labelling = MultiLabelling()
         self.vulnerability = Vulnerabilities()
 
-        self.unassigned_variables = []
-
     def import_tree(self, filename):
         with open(filename, 'r') as file:
             source = file.read()
@@ -42,9 +40,9 @@ class Code_analyzer:
         policy = Policy(patterns)
         return policy
 
-    def get_relevant_source_patterns(self, name):
+    def get_relevant_source_patterns(self, trace, name):
         # any non-instantiated variable is to be considered as an entry point to all vulnerabilities
-        if name in self.unassigned_variables:
+        if name in trace.get_unassigned_variables():
             return self.policy.get_patterns()
         
         return self.policy.get_relevant_patterns(name, "source")
@@ -119,11 +117,14 @@ class Code_analyzer:
             # assume only one left hand variable in assignments
             left_variable_name = node.targets[0].id
 
+            if left_variable_name in current_trace.get_unassigned_variables():
+                current_trace.remove_unassigned_variable(left_variable_name)
+
             # if right hand part of assignment is a variable
             if isinstance(node.value, ast.Name):
                 right_variable_name = node.value.id
 
-                input_source_patterns = self.get_relevant_source_patterns(right_variable_name)
+                input_source_patterns = self.get_relevant_source_patterns(current_trace, right_variable_name)
                 
                 # if right hand variable is a source in one of the patterns
                 if len(input_source_patterns) > 0:
@@ -197,7 +198,7 @@ class Code_analyzer:
 
         elif isinstance(node, ast.Name):
             if self.is_unassigned_variable(current_trace, node):
-                self.unassigned_variables.append(node.id)
+                current_trace.add_unassigned_variable(node.id)
             current_trace.add_node(node)
             return node
 
@@ -241,7 +242,7 @@ class Code_analyzer:
             
             call_name = node.func.id
 
-            input_source_patterns = self.get_relevant_source_patterns(call_name)
+            input_source_patterns = self.get_relevant_source_patterns(current_trace, call_name)
             sink_patterns = self.get_relevant_sink_patterns(call_name)
             sanitizer_patterns = self.get_relevant_sanitizer_patterns(call_name)
             
@@ -272,7 +273,7 @@ class Code_analyzer:
             for name in inner_nodes:
 
                 call_input = name.id
-                input_source_patterns = self.get_relevant_source_patterns(call_input)
+                input_source_patterns = self.get_relevant_source_patterns(current_trace, call_input)
 
                 # call input is variable that was left hand part of assigment earlier
                 if call_input in self.multi_labelling.get_multi_labels():

@@ -17,6 +17,7 @@ class ExecutionTrace:
     def __init__(self):
         self.nodes = []
         self.child_traces = set()
+        self.unassigned_variables = set()
     
     def add_child_trace(self, trace):
         self.child_traces.add(trace)
@@ -28,6 +29,16 @@ class ExecutionTrace:
 
     def get_nodes(self):
         return self.nodes
+    
+    def get_unassigned_variables(self):
+        return self.unassigned_variables
+    
+    def add_unassigned_variable(self, name):
+        self.unassigned_variables.add(name)
+    
+    def remove_unassigned_variable(self, name):
+        self.unassigned_variables.remove(name)
+
 
     def deep_copy(self):
         result = ExecutionTrace()
