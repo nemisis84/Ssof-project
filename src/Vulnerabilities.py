@@ -14,13 +14,17 @@ class Vulnerabilities():
     def get_all_vulnerabilities(self):
         return self.vulnerabilities
     
+    def are_equal_vulnerabilities(self, vul1, vul2):
+        return (vul1["vulnerability"][0] == vul2["vulnerability"][0] and
+            vul1["source"] == vul2["source"] and 
+            vul1["sink"] == vul2["sink"] and 
+            vul1["sanitized_flows"] == vul2['sanitized_flows'] and 
+            vul1["unsanitized_flows"] == vul2['unsanitized_flows'])
+    
     def name_helper(self, pattern_name):
-        
         if len(self.get_all_vulnerabilities()) == 0:
             return pattern_name + "_1"
-        
         counter = 1
-
         for vulnerability in self.vulnerabilities:
             if vulnerability["vulnerability"][:-2] == pattern_name:
                 counter += 1
@@ -47,9 +51,9 @@ class Vulnerabilities():
                         vulnerability["unsanitized_flows"] = "No"
                     
                     vulnerability_reported = False
-                    # for vul in self.get_all_vulnerabilities():
-                    #     if vul["source"] == vulnerability["source"] and vul["sink"] == vulnerability["sink"]:
-                    #         vulnerability_reported = True
+                    for vul in self.get_all_vulnerabilities():
+                        if self.are_equal_vulnerabilities(vulnerability, vul):
+                            vulnerability_reported = True
                     
                     if not vulnerability_reported:
                         self.vulnerabilities.append(vulnerability)
