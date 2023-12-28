@@ -129,7 +129,7 @@ class Code_analyzer:
                 
                 # for all patterns where right hand variable is a source (could be 0)
                 for source_pattern_object in source_patterns:
-                    label = Label([(right_variable_name, dict(), node.lineno)])
+                    label = Label([(right_variable_name, node.lineno, [])])
                     multi_label = MultiLabel({source_pattern_object.get_name(): (source_pattern_object, label)})
                     # print("Assign name to", left_variable_name, right_variable_name)
                     self.multi_labelling.add_multilabel(left_variable_name, multi_label)
@@ -251,7 +251,7 @@ class Code_analyzer:
 
                     # if call has no arguments, call is a source and call is value of assignment
                     is_sanitized = self.has_matching_object(list(map(lambda x: x.get_name(), sanitizer_patterns)), list(map(lambda x: x.get_name(), source_patterns)))
-                    label = Label([(call_name, dict(), node.lineno)])
+                    label = Label([(call_name, node.lineno, [])])
                     multi_label = MultiLabel({source_pattern.get_name(): (source_pattern, label)})
                     # print(f"Assign function {call_name} to:", assignment)
                     self.multi_labelling.add_multilabel(assignment, multi_label)
@@ -287,7 +287,7 @@ class Code_analyzer:
 
                     # check if call name is sanitizer of call input
                     is_sanitized = self.has_matching_object(list(map(lambda x: x.get_name(), sanitizer_patterns)), list(map(lambda x: x.get_name(), input_source_patterns)))
-                    label = Label([(call_input, {call_name: node.lineno}, node.lineno)]) if is_sanitized else Label([(call_input, dict(), node.lineno)])
+                    label = Label([(call_input, node.lineno, [(call_name, node.lineno)])]) if is_sanitized else Label([(call_input, node.lineno, [])])
                     
                     add_multi_label = MultiLabel({input_source_pattern.get_name(): (input_source_pattern, label)})
                     multi_label = multi_label.combine(add_multi_label)

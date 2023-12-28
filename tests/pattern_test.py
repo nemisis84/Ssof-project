@@ -13,7 +13,8 @@ vulnerability_pattern = Pattern(
     name="SQL Injection",
     sources=["user_input", "random_file"],
     sanitizers=["sanitize_something"],
-    sinks=["some_sink"]
+    sinks=["some_sink"],
+    implicit = "yes"
 )
 
 # Testing contains_* functions

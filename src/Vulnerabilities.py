@@ -1,3 +1,5 @@
+import copy
+
 class Vulnerabilities():
 
     def __init__(self):
@@ -31,14 +33,13 @@ class Vulnerabilities():
             if sink in pattern.get_sinks():
                 sources = label.get_sources()
 
-                for source, sanitizers, lineno in sources:
-                    #Don't know if it is needed for the ouput to be equal to examples, ig: ["e", 3] != ['e', 3]
+                for source, source_lineno, sanitizers in sources:
                     vulnerability = {}
                     vulnerability["vulnerability"] = self.name_helper(pattern.get_name())
-                    vulnerability["source"] = [source, lineno]
+                    vulnerability["source"] = [source, source_lineno]
                     vulnerability["sink"] = [sink, sink_lineno]
                     #Unsanitized flow may need to be first
-                    vulnerability["sanitized_flows"] = list(map(list, sanitizers.copy().items()))
+                    vulnerability["sanitized_flows"] = copy.deepcopy(sanitizers)
                     if not vulnerability["sanitized_flows"]:
                         vulnerability["unsanitized_flows"] = "Yes"
                     else:
