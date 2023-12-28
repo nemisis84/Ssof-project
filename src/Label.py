@@ -1,49 +1,45 @@
+import copy
+
 class Label:
     def __init__(self, sources: list):
-        self._sources = sources # [(source, {san1, san2}, lineno), (source2, {san1, san2}, lineno), ...]
+        self.sources = sources # [(source, source_lineno, [(san1, san1_lineno), (san2, san2_lineno)]), ...]
 
     def add_source(self, source):
         if isinstance(source, tuple):
-            self._sources.append(source)
+            self.sources.append(source)
         else:
-            print("Source needs to be tuple: (source, {san1,san2}, lineno)")
+            print("Source needs to be tuple: (source, source_lineno, [(san1, san1_lineno), ...])")
 
-    def add_sanitizer(self, source, sanitizer):
-        for sor, san, lineno in self._sources:
+    def add_sanitizer(self, source, sanitizer, sanitizer_lineno):
+        for (sor, _, sanitizers) in self.sources:
             if sor == source:
-                san.add(sanitizer)
+                sanitizers.append((sanitizer, sanitizer_lineno))
                 return
         print("No matching source")
 
     def get_sources(self):
-        return self._sources
+        return self.sources
 
     def get_source_names(self):
         # Only grabs source_names
-        return list(map(lambda x: x[0], self.get_sources()))
-    
+        return [source[0] for source in self.get_sources()]
+
     def get_linenos(self):
-        return list(map(lambda x: x[2], self.get_sources()))
+        return [source[1] for source in self.get_sources()]
 
     def get_sanitizers(self, source):
-        for sor, san, lineno in self._sources:
+        for sor, lineno, sanitizers in self.sources:
             if sor == source:
-                return san.copy()
+                return dict(sanitizers)
 
     def combine(self, other_label):
         sources = self.get_sources() + other_label.get_sources()
         combined_label = Label(sources)
         return combined_label
-    
+
     def deep_copy(self):
         result_sources = []
-        for source, sanitizers, lineno in self._sources:
-            result_sanitizers = set()
-            for sanitizer in sanitizers:
-                result_sanitizers.add(sanitizer)
-            
-            result_sources.append((source, result_sanitizers))
-            #Might be wrong
-            result_sources.append((result_sources, lineno))
-        
+        for source, lineno, sanitizers in self.sources:
+            result_sanitizers = copy.deepcopy(sanitizers)
+            result_sources.append((source, lineno, result_sanitizers))
         return Label(result_sources)

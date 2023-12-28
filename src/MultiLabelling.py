@@ -1,7 +1,8 @@
 class MultiLabelling():
-    def __init__(self):
-        # This dictionary stores variable names as keys and their multi-labels as values
-        self.multi_labels = {}  # {"variable_name": multi_label}
+    def __init__(self, multi_labels=None):
+        if multi_labels is None:
+            multi_labels = {}
+        self.multi_labels = multi_labels # {"variable_name": multi_label}
 
     def add_multilabel(self, variable_name, multi_label):
         self.multi_labels[variable_name] = multi_label
@@ -15,9 +16,10 @@ class MultiLabelling():
         return self.multi_labels.get(variable_name)
 
     def mutator(self, old_variable_name, new_variable_name):
-        # Updates the multi-label varable (key) for a given variable name
+        # Updates the multi-label variable (key) for a given variable name
         if old_variable_name in self.multi_labels.keys():
             self.multi_labels[new_variable_name] = self.multi_labels[old_variable_name]
+            self.multi_labels.pop(old_variable_name)
         else:
             print(f"Variable name '{old_variable_name}' not found.")
 
