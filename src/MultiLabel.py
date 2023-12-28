@@ -12,6 +12,9 @@ class MultiLabel:
 
     def get_pattern_names(self):
         return list(self.pattern_to_label_mapping.keys())
+    
+    def get_patterns(self):
+        return [pattern for pattern, _ in self.pattern_to_label_mapping.values()]
 
     def add_label(self, pattern, label):
         if pattern.get_name() in self.pattern_to_label_mapping:
