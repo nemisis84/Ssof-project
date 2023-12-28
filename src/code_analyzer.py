@@ -306,7 +306,7 @@ class Code_analyzer:
                                 if pattern.get_name() == sanitizer_pattern.get_name():
                                     for label_info in label.get_sources():
                                         source = label_info[0]
-                                        label.add_sanitizer(source, {call_name: node.lineno}, call_name)
+                                        label.add_sanitizer(source, call_name, node.lineno)
             
         elif isinstance(node, ast.Attribute):
             # TODO: what if a sink calls on an attribute which is a source. 
