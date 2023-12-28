@@ -1,8 +1,8 @@
 class MultiLabel:
-    def __init__(self, lineno = None, labels_dict = {}):
+    def __init__(self, labels_dict=None):
+        if labels_dict is None:
+            labels_dict = {}
         self.pattern_to_label_mapping = labels_dict # {pattern_name: (pattern, label)}
-        self.lineno = lineno
-        #TODO: Change rest of multilabel to accomodate lineno
     
     def get_pattern_to_label_mapping(self):
         return self.pattern_to_label_mapping
@@ -15,7 +15,8 @@ class MultiLabel:
 
     def add_label(self, pattern, label):
         if pattern.get_name() in self.pattern_to_label_mapping:
-            print("Pattern already excist.")
+            print(f"Pattern {pattern.get_name()} already exists.")
+            # print("label: " + str(label.get_sources()))
         else:
             self.pattern_to_label_mapping[pattern.get_name()] = (pattern, label)
             
@@ -25,14 +26,15 @@ class MultiLabel:
     def set_lineno(self, lineno):
         self.lineno = lineno
         
-        
     def combine(self, other_multilabel):
+        print("combine")
         result = MultiLabel(self.get_pattern_to_label_mapping())
-        for pattern_name, (pattern, label) in other_multilabel.get_pattern_to_label_mapping().items():
-            if pattern_name in self.get_pattern_names():
+        for (pattern, label) in other_multilabel.get_pattern_to_label_mapping().values():
+            if pattern.get_name() in self.get_pattern_names():
                 new_label = self.get_label(pattern).combine(label)
                 result.pattern_to_label_mapping[pattern.get_name()] = (pattern, new_label)
             else:
+                # print(f"{pattern.get_name()} not in self")
                 result.add_label(pattern, label)
         
         return result

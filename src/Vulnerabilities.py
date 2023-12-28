@@ -45,13 +45,13 @@ class Vulnerabilities():
                         vulnerability["unsanitized_flows"] = "No"
                     
                     vulnerability_reported = False
-                    for vul in self.get_all_vulnerabilities():
-                        if vul["source"] == vulnerability["source"] and vul["sink"] == vulnerability["sink"]:
-                            vulnerability_reported = True
+                    # for vul in self.get_all_vulnerabilities():
+                    #     if vul["source"] == vulnerability["source"] and vul["sink"] == vulnerability["sink"]:
+                    #         vulnerability_reported = True
                     
                     if not vulnerability_reported:
                         self.vulnerabilities.append(vulnerability)
-                        print(f"Report vulnerability with sink: {sink} and source: {source}")
+                        # print(f"Report vulnerability with sink: {sink} and source: {source}")
 
 if __name__ == "__main__":
     from Label import Label
@@ -72,4 +72,4 @@ if __name__ == "__main__":
     # vulnerabilities.report_vulnerability("sink2", multilabel)
     
 
-    print(vulnerabilities.get_all_vulnerabilities())
+    # print(vulnerabilities.get_all_vulnerabilities())

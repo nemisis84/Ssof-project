@@ -58,6 +58,7 @@ class Code_analyzer:
 
     def report(self, variable_name, multi_label, sink_lineno = None):
         if self.is_sink(variable_name):
+            print(f"Report variable {variable_name}")
             illegal_flow = self.policy.corresponding_illegal_flow(variable_name, multi_label)
             self.vulnerability.report_vulnerability(variable_name, illegal_flow, sink_lineno)
         else:
@@ -129,8 +130,8 @@ class Code_analyzer:
                 # for all patterns where right hand variable is a source (could be 0)
                 for source_pattern_object in source_patterns:
                     label = Label([(right_variable_name, set(), node.lineno)])
-                    multi_label = MultiLabel(node.lineno, {source_pattern_object.get_name(): (source_pattern_object, label)})
-                    print("Assign name to", left_variable_name, right_variable_name)
+                    multi_label = MultiLabel({source_pattern_object.get_name(): (source_pattern_object, label)})
+                    # print("Assign name to", left_variable_name, right_variable_name)
                     self.multi_labelling.add_multilabel(left_variable_name, multi_label)
                 
                     # if right hand variable is assigned before
@@ -146,12 +147,12 @@ class Code_analyzer:
 
                     
                     if self.is_sink(left_variable_name): # Report
-                        print(f"Reporting assignment: {left_variable_name}")
+                        # print(f"Reporting assignment: {left_variable_name}")
                         multi_label = self.multi_labelling.get_multi_label(left_variable_name)
                         self.report(left_variable_name, multi_label, node.lineno)
 
             elif isinstance(node.value, ast.Constant):
-                print("Assign constant to:", left_variable_name)
+                # print("Assign constant to:", left_variable_name)
                 self.multi_labelling.add_multilabel(left_variable_name, MultiLabel())
 
             current_trace.add_node(node)
@@ -242,7 +243,6 @@ class Code_analyzer:
             call_name = node.func.id
 
             source_patterns = self.get_relevant_source_patterns(current_trace, call_name)
-            sink_patterns = self.get_relevant_sink_patterns(call_name)
             sanitizer_patterns = self.get_relevant_sanitizer_patterns(call_name)
             
             if not node.args and assignment != False:
@@ -252,8 +252,8 @@ class Code_analyzer:
                     # if call has no arguments, call is a source and call is value of assignment
                     is_sanitized = self.has_matching_object(list(map(lambda x: x.get_name(), sanitizer_patterns)), list(map(lambda x: x.get_name(), source_patterns)))
                     label = Label([(call_name, set(), node.lineno)])
-                    multi_label = MultiLabel(node.lineno, {source_pattern.get_name(): (source_pattern, label)})
-                    print(f"Assign function {call_name} to:", assignment)
+                    multi_label = MultiLabel({source_pattern.get_name(): (source_pattern, label)})
+                    # print(f"Assign function {call_name} to:", assignment)
                     self.multi_labelling.add_multilabel(assignment, multi_label)
                     self.report(assignment, multi_label, node.lineno)
                     
@@ -272,26 +272,31 @@ class Code_analyzer:
             for name in inner_nodes:
 
                 call_input = name.id
+                print(f"Call input: {call_input}")
                 input_source_patterns = self.get_relevant_source_patterns(current_trace, call_input)
 
                 for input_source_pattern in input_source_patterns:
-                    print("call input " + call_input + " triggered pattern " + input_source_pattern.get_name())
+                    print(f"Input source pattern: {input_source_pattern.get_name()}")
 
                     multi_label = MultiLabel()
 
                     # call input is variable that was left hand part of assigment earlier
                     if call_input in self.multi_labelling.get_multi_labels():
                         add_multi_label = self.multi_labelling.get_multi_label(call_input)
-                        print("call input " + call_input + " already exists for multi label " + str(add_multi_label.get_pattern_names()))
                         multi_label = multi_label.combine(add_multi_label)
 
                     # check if call name is sanitizer of call input
                     is_sanitized = self.has_matching_object(list(map(lambda x: x.get_name(), sanitizer_patterns)), list(map(lambda x: x.get_name(), input_source_patterns)))
                     label = Label([(call_input, {call_name}, node.lineno)]) if is_sanitized else Label([(call_input, set(), node.lineno)])
                     
-                    add_multi_label = MultiLabel(node.lineno, {input_source_pattern.get_name(): (input_source_pattern, label)})
+                    add_multi_label = MultiLabel({input_source_pattern.get_name(): (input_source_pattern, label)})
                     multi_label = multi_label.combine(add_multi_label)
 
+                    if assignment:
+                        self.multi_labelling.add_multilabel(assignment, multi_label)
+
+                    if self.is_sink(call_name):
+                        self.report(call_name, multi_label, node.lineno)
 
                     for sanitizer_pattern in sanitizer_patterns:
                         if call_input in self.multi_labelling.get_multi_labels():
@@ -302,16 +307,6 @@ class Code_analyzer:
                                     for label_info in label.get_sources():
                                         source = label_info[0]
                                         label.add_sanitizer(source, call_name)
-
-            # call name is sink
-            if len(sink_patterns) > 0:
-                print(f"Reporting function: {call_name}")
-
-                self.report(call_name, multi_label, node.lineno)
-
-            if assignment:
-                print("Assign function to:", assignment)
-                self.multi_labelling.add_multilabel(assignment, multi_label)
             
         elif isinstance(node, ast.Attribute):
             # TODO: what if a sink calls on an attribute which is a source. 
@@ -331,15 +326,14 @@ class Code_analyzer:
                     print(f"{node.__class__.__name__}: {node.attr}", end=end)
                 else:
                     print(node.__class__.__name__, end=end)
-            print()
 
 if __name__ == "__main__":
     # code_file = "1b-basic-flow"
     code_file = "2-expr-binary-ops"
-    patterns = f"../slices/{code_file}.patterns.json"
-    code = f"../slices/{code_file}.py"
+    patterns = f"slices/{code_file}.patterns.json"
+    code = f"slices/{code_file}.py"
     analyzer = Code_analyzer(patterns, code)
     traces = analyzer.walk_tree()
     for vulnerabilities in analyzer.vulnerability.get_all_vulnerabilities():
         print(vulnerabilities)
-    analyzer.pretty_print_traces(traces)
+    # analyzer.pretty_print_traces(traces)
