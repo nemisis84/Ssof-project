@@ -96,10 +96,10 @@ class Code_analyzer:
         all_traces = []
         initial_trace = ExecutionTrace()
         all_traces.append(initial_trace)
-        self.traverse_ast(self.tree, initial_trace, all_traces, [])
+        self.traverse_ast(self.tree, initial_trace, all_traces)
         return all_traces
 
-    def traverse_ast(self, node, current_trace, all_traces, assignment = False):
+    def traverse_ast(self, node, current_trace, all_traces, assignment = False, parent_calls = []):
 
         #============================#
         # ROOT NODE
@@ -249,7 +249,18 @@ class Code_analyzer:
             source_patterns = self.get_relevant_source_patterns(current_trace, call_name)
             sanitizer_patterns = self.get_relevant_sanitizer_patterns(call_name)
             
-            if not node.args and assignment != False:
+            # if call has arguments, loop over arguments
+            inner_nodes = []
+            for arg in node.args:
+                parent_calls.append(call_name)
+                inner_node = self.traverse_ast(arg, current_trace, all_traces, parent_calls=parent_calls)
+                if type(inner_node) != list and inner_node:
+                    inner_node = [inner_node]
+                elif not inner_node:
+                    inner_node = []
+                inner_nodes.extend(inner_node)
+
+            if len(inner_nodes) == 0 and assignment != False:
                 for source_pattern in source_patterns:
                     multi_label = MultiLabel()
 
@@ -263,16 +274,6 @@ class Code_analyzer:
                     
                 return
 
-            # if call has arguments, loop over arguments
-            inner_nodes = []
-            for arg in node.args:
-                inner_node = self.traverse_ast(arg, current_trace, all_traces)
-                if type(inner_node) != list and inner_node:
-                    inner_node = [inner_node]
-                elif not inner_node:
-                    inner_node = []
-                inner_nodes.extend(inner_node)
-
             for name in inner_nodes:
 
                 call_input = name.id
@@ -283,7 +284,7 @@ class Code_analyzer:
 
                 # call input is variable that was left hand part of assigment earlier
                 existing_multi_labels = self.multi_labelling.get_multi_labels()
-                print(existing_multi_labels)
+                # print(existing_multi_labels)
                 if call_input in self.multi_labelling.get_multi_labels():
                     add_multi_label = self.multi_labelling.get_multi_label(call_input)
                     multi_label = multi_label.combine(add_multi_label)
@@ -312,6 +313,10 @@ class Code_analyzer:
                 if self.is_sink(call_name):
                     self.report(call_name, multi_label, node.lineno)
 
+                for parent_call in parent_calls:
+                    if self.is_sink(parent_call):
+                        self.report(parent_call, multi_label, node.lineno)
+
         elif isinstance(node, ast.Attribute):
             # TODO: what if a sink calls on an attribute which is a source. 
             current_trace.add_node(node)
@@ -333,7 +338,7 @@ class Code_analyzer:
 
 if __name__ == "__main__":
     # code_file = "1b-basic-flow"
-    code_file = "2-expr-binary-ops"
+    code_file = "3a-expr-func-calls"
     patterns = f"slices/{code_file}.patterns.json"
     code = f"slices/{code_file}.py"
     analyzer = Code_analyzer(patterns, code)
