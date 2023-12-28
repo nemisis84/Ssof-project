@@ -41,11 +41,15 @@ class Code_analyzer:
         return policy
 
     def get_relevant_source_patterns(self, trace, name):
+        relevant_patterns = []
+        
         # any non-instantiated variable is to be considered as an entry point to all vulnerabilities
         if name in trace.get_unassigned_variables():
             return self.policy.get_patterns()
         
-        return self.policy.get_relevant_patterns(name, "source")
+        # patterns in policy that have `name` as source
+        relevant_patterns += self.policy.get_relevant_patterns(name, "source")
+        return relevant_patterns
     
     def get_relevant_sink_patterns(self, name):
         return self.policy.get_relevant_patterns(name, "sink")
@@ -275,39 +279,39 @@ class Code_analyzer:
                 print(f"Call input: {call_input}")
                 input_source_patterns = self.get_relevant_source_patterns(current_trace, call_input)
 
+                multi_label = MultiLabel()
+
+                # call input is variable that was left hand part of assigment earlier
+                existing_multi_labels = self.multi_labelling.get_multi_labels()
+                print(existing_multi_labels)
+                if call_input in self.multi_labelling.get_multi_labels():
+                    add_multi_label = self.multi_labelling.get_multi_label(call_input)
+                    multi_label = multi_label.combine(add_multi_label)
+
+                label = Label([(call_input, node.lineno, [(call_name, node.lineno)])])
+
                 for input_source_pattern in input_source_patterns:
                     print(f"Input source pattern: {input_source_pattern.get_name()}")
 
-                    multi_label = MultiLabel()
-
-                    # call input is variable that was left hand part of assigment earlier
-                    if call_input in self.multi_labelling.get_multi_labels():
-                        add_multi_label = self.multi_labelling.get_multi_label(call_input)
-                        multi_label = multi_label.combine(add_multi_label)
-
-                    # check if call name is sanitizer of call input
-                    is_sanitized = self.has_matching_object(list(map(lambda x: x.get_name(), sanitizer_patterns)), list(map(lambda x: x.get_name(), input_source_patterns)))
-                    label = Label([(call_input, node.lineno, [(call_name, node.lineno)])]) if is_sanitized else Label([(call_input, node.lineno, [])])
-                    
                     add_multi_label = MultiLabel({input_source_pattern.get_name(): (input_source_pattern, label)})
                     multi_label = multi_label.combine(add_multi_label)
 
-                    if assignment:
-                        self.multi_labelling.add_multilabel(assignment, multi_label)
-
-                    if self.is_sink(call_name):
-                        self.report(call_name, multi_label, node.lineno)
-
-                    for sanitizer_pattern in sanitizer_patterns:
-                        if call_input in self.multi_labelling.get_multi_labels():
-                            call_input_multi_label = self.multi_labelling.get_multi_label(call_input)
-                            pattern_to_label_mappings = call_input_multi_label.get_pattern_to_label_mapping()
-                            for (pattern, label) in pattern_to_label_mappings.values():
-                                if pattern.get_name() == sanitizer_pattern.get_name():
-                                    for label_info in label.get_sources():
-                                        source = label_info[0]
-                                        label.add_sanitizer(source, {call_name: node.lineno}, call_name)
+                for sanitizer_pattern in sanitizer_patterns:
+                    if call_input in self.multi_labelling.get_multi_labels():
+                        call_input_multi_label = self.multi_labelling.get_multi_label(call_input)
+                        pattern_to_label_mappings = call_input_multi_label.get_pattern_to_label_mapping()
+                        for (pattern, label) in pattern_to_label_mappings.values():
+                            if pattern.get_name() == sanitizer_pattern.get_name():
+                                for label_info in label.get_sources():
+                                    source = label_info[0]
+                                    label.add_sanitizer(source, {call_name: node.lineno}, call_name)
             
+                if assignment:
+                    self.multi_labelling.add_multilabel(assignment, multi_label)
+
+                if self.is_sink(call_name):
+                    self.report(call_name, multi_label, node.lineno)
+
         elif isinstance(node, ast.Attribute):
             # TODO: what if a sink calls on an attribute which is a source. 
             current_trace.add_node(node)
