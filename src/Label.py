@@ -1,6 +1,8 @@
+import copy
+
 class Label:
     def __init__(self, sources: list):
-        self._sources = sources # [(source, {san1, san2}, lineno), (source2, {san1, san2}, lineno), ...]
+        self._sources = sources # [(source, {san1: lineno_san1, san2: lineno_san2}, lineno_source), (source2, {san1: lineno_san1, san2: lineno_san2}, lineno_source2, ...]
 
     def add_source(self, source):
         if isinstance(source, tuple):
@@ -8,10 +10,11 @@ class Label:
         else:
             print("Source needs to be tuple: (source, {san1,san2}, lineno)")
 
-    def add_sanitizer(self, source, sanitizer):
+    def add_sanitizer(self, source, sanitizer, sanitizer_key):
         for sor, san, lineno in self._sources:
             if sor == source:
-                san.add(sanitizer)
+                # print("aaaa :" + str(sanitizer))
+                san[sanitizer_key] = sanitizer[sanitizer_key]
                 return
         print("No matching source")
 
@@ -38,9 +41,8 @@ class Label:
     def deep_copy(self):
         result_sources = []
         for source, sanitizers, lineno in self._sources:
-            result_sanitizers = set()
-            for sanitizer in sanitizers:
-                result_sanitizers.add(sanitizer)
+            
+            result_sanitizers = copy.deepcopy(sanitizers)
             
             result_sources.append((source, result_sanitizers))
             #Might be wrong

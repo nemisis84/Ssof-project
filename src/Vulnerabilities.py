@@ -32,12 +32,13 @@ class Vulnerabilities():
                 sources = label.get_sources()
 
                 for source, sanitizers, lineno in sources:
+                    #Don't know if it is needed for the ouput to be equal to examples, ig: ["e", 3] != ['e', 3]
                     vulnerability = {}
                     vulnerability["vulnerability"] = self.name_helper(pattern.get_name())
                     vulnerability["source"] = [source, lineno]
                     vulnerability["sink"] = [sink, sink_lineno]
                     #Unsanitized flow may need to be first
-                    vulnerability["sanitized_flows"] = sanitizers.copy()
+                    vulnerability["sanitized_flows"] = list(map(list, sanitizers.copy().items()))
                     if not vulnerability["sanitized_flows"]:
                         vulnerability["unsanitized_flows"] = "Yes"
                     else:
