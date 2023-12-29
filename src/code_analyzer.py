@@ -245,14 +245,12 @@ class Code_analyzer:
             current_trace.add_node(node)
             self.traverse_ast(node.func, current_trace, all_traces)
             
-            call_name = node.func.id
-            
             # if call has arguments, loop over arguments
             inner_nodes = []
             for arg in node.args:
                 parent_calls = copy.deepcopy(parent_calls)
                 parent_calls.add(node.func.id)
-                inner_node = self.traverse_ast(arg, current_trace, all_traces, assignment=assignment, parent_calls=parent_calls)
+                inner_node = self.traverse_ast(arg, current_trace, all_traces, parent_calls=parent_calls)
                 if type(inner_node) != list and inner_node:
                     inner_node = [inner_node]
                 elif not inner_node:
