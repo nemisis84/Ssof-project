@@ -245,11 +245,12 @@ class Code_analyzer:
             current_trace.add_node(node)
             self.traverse_ast(node.func, current_trace, all_traces)
             
+            parent_calls = copy.deepcopy(parent_calls)
+            parent_calls.add(node.func.id)
+
             # if call has arguments, loop over arguments
             inner_nodes = []
             for arg in node.args:
-                parent_calls = copy.deepcopy(parent_calls)
-                parent_calls.add(node.func.id)
                 inner_node = self.traverse_ast(arg, current_trace, all_traces, parent_calls=parent_calls)
                 if type(inner_node) != list and inner_node:
                     inner_node = [inner_node]
@@ -310,6 +311,8 @@ class Code_analyzer:
                 
                     if assignment:
                         self.multi_labelling.add_multilabel(assignment, multi_label)
+                        # if self.is_sink(assignment):
+                        #     self.report(call_input, multi_label, node.lineno)
 
                     if self.is_sink(call_name):
                         self.report(call_name, multi_label, node.lineno)
@@ -335,7 +338,7 @@ class Code_analyzer:
 
 if __name__ == "__main__":
     # code_file = "1b-basic-flow"
-    code_file = "3a-expr-func-calls"
+    code_file = "1b-basic-flow"
     patterns = f"slices/{code_file}.patterns.json"
     code = f"slices/{code_file}.py"
     analyzer = Code_analyzer(patterns, code)
