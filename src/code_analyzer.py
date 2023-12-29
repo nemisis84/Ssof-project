@@ -161,7 +161,7 @@ class Code_analyzer:
                 self.multi_labelling.add_multilabel(left_variable_name, MultiLabel())
 
             current_trace.add_node(node)
-            for target in node.targets: 
+            for target in node.targets:
                 self.traverse_ast(target, current_trace, all_traces)
             self.traverse_ast(node.value, current_trace, all_traces, assignment=left_variable_name) # Continue traversal
 
@@ -311,8 +311,7 @@ class Code_analyzer:
                 
                     if assignment:
                         self.multi_labelling.add_multilabel(assignment, multi_label)
-                        # if self.is_sink(assignment):
-                        #     self.report(call_input, multi_label, node.lineno)
+                        self.report(assignment, multi_label, node.lineno)
 
                     if self.is_sink(call_name):
                         self.report(call_name, multi_label, node.lineno)
@@ -338,7 +337,7 @@ class Code_analyzer:
 
 if __name__ == "__main__":
     # code_file = "1b-basic-flow"
-    code_file = "1b-basic-flow"
+    code_file = "3a-expr-func-calls"
     patterns = f"slices/{code_file}.patterns.json"
     code = f"slices/{code_file}.py"
     analyzer = Code_analyzer(patterns, code)
