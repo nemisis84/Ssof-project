@@ -100,7 +100,7 @@ class Code_analyzer:
         self.traverse_ast(self.tree, initial_trace, all_traces)
         return all_traces
 
-    def traverse_ast(self, node, current_trace, all_traces, assignment = False, parent_calls = set(), sanitized_flow = 0):
+    def traverse_ast(self, node, current_trace, all_traces, assignment = False, parent_calls = set(), is_first_arguments = True, argument_position = None):
 
         #============================#
         # ROOT NODE
@@ -250,14 +250,13 @@ class Code_analyzer:
 
             # if call has arguments, loop over arguments
             inner_nodes = []
-            for arg in node.args:
+            for position, arg in enumerate(node.args):
                 #To build the multiple sanitized flows (Might not work with if-else in this way)
-                if(sanitized_flow == 0):
-                    sanitized_flow_input = 0
-                    sanitized_flow_input += 1
-                    inner_node = self.traverse_ast(arg, current_trace, all_traces, parent_calls=parent_calls, sanitized_flow=sanitized_flow_input)
+                if(is_first_arguments):
+                    inner_node = self.traverse_ast(arg, current_trace, all_traces, parent_calls=parent_calls, is_first_arguments=False, argument_position=position)
                 else:
-                    inner_node = self.traverse_ast(arg, current_trace, all_traces, parent_calls=parent_calls, sanitized_flow=sanitized_flow)
+                    inner_node = self.traverse_ast(arg, current_trace, all_traces, parent_calls=parent_calls, is_first_arguments=is_first_arguments, argument_position=argument_position)
+                    
                     
                 if type(inner_node) != list and inner_node:
                     inner_node = [inner_node]
@@ -315,7 +314,7 @@ class Code_analyzer:
                                     for label_info in label.get_sources():
                                         source = label_info[0]
                                         # label.add_sanitizer(source, call_name, node.lineno) 
-                                        label.add_sanitized_flow(source, [[call_name, node.lineno]], sanitized_flow)
+                                        label.add_sanitizer_and_position(source, [[call_name, node.lineno]], argument_position)
                                             
                                                                     
                 

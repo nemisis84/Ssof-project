@@ -1,10 +1,10 @@
 import copy
 
 class Label:
-    def __init__(self, sources: list, sanitized_flow = None):
+    def __init__(self, sources: list, position = None):
         self.sources = sources # [(source, source_lineno, [[san1, san1_lineno], [san2, san2_lineno]]), ...]
-        self.sanitized_flow = sanitized_flow
-        # print("aaaa aaaaaaaa: " + str(self.sanitized_flow))
+        self.position = position
+        # print("aaaa aaaaaaaa: " + str(self.position))
 
     def add_source(self, source):
         if isinstance(source, tuple):
@@ -19,17 +19,17 @@ class Label:
                 return
         print("No matching source")
         
-    def add_sanitized_flow(self, source, nested_sanitizers, sanitized_flow):
+    def add_sanitizer_and_position(self, source, nested_sanitizers, position):
         for (sor, _, sanitizers) in self.sources:
             if sor == source:
                 #Might only start at 1
-                self.sanitized_flow = sanitized_flow
+                self.position = position
                 sanitizers.append(nested_sanitizers)
                 return
         print("No matching source")
 
-    def get_sanitized_flow_number(self):
-        return self.sanitized_flow
+    def get_sanitizer_and_position(self):
+        return self.position
     
     def get_sources(self):
         return self.sources
@@ -48,10 +48,10 @@ class Label:
 
     def combine(self, other_label):
         sources = self.get_sources() + other_label.get_sources()
-        if(self.sanitized_flow == other_label.get_sanitized_flow_number()):
-            sanitized_flow = self.sanitized_flow
+        if(self.position == other_label.get_position_number()):
+            position = self.position
             
-        combined_label = Label(sources, sanitized_flow=sanitized_flow)
+        combined_label = Label(sources, position=position)
         return combined_label
 
     def deep_copy(self):
