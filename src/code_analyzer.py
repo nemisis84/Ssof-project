@@ -100,7 +100,7 @@ class Code_analyzer:
         self.traverse_ast(self.tree, initial_trace, all_traces)
         return all_traces
 
-    def traverse_ast(self, node, current_trace, all_traces, assignment = False, parent_calls = set()):
+    def traverse_ast(self, node, current_trace, all_traces, assignment = False, parent_calls = set(), sanitized_flow = 0):
 
         #============================#
         # ROOT NODE
@@ -251,7 +251,14 @@ class Code_analyzer:
             # if call has arguments, loop over arguments
             inner_nodes = []
             for arg in node.args:
-                inner_node = self.traverse_ast(arg, current_trace, all_traces, parent_calls=parent_calls)
+                #To build the multiple sanitized flows (Might not work with if-else in this way)
+                if(sanitized_flow == 0):
+                    sanitized_flow_input = 0
+                    sanitized_flow_input += 1
+                    inner_node = self.traverse_ast(arg, current_trace, all_traces, parent_calls=parent_calls, sanitized_flow=sanitized_flow_input)
+                else:
+                    inner_node = self.traverse_ast(arg, current_trace, all_traces, parent_calls=parent_calls, sanitized_flow=sanitized_flow)
+                    
                 if type(inner_node) != list and inner_node:
                     inner_node = [inner_node]
                 elif not inner_node:
@@ -307,7 +314,10 @@ class Code_analyzer:
                                 if pattern.get_name() == sanitizer_pattern.get_name():
                                     for label_info in label.get_sources():
                                         source = label_info[0]
-                                        label.add_sanitizer(source, {call_name: node.lineno}, call_name)
+                                        # label.add_sanitizer(source, call_name, node.lineno) 
+                                        label.add_sanitized_flow(source, [[call_name, node.lineno]], sanitized_flow)
+                                            
+                                                                    
                 
                     if assignment:
                         self.multi_labelling.add_multilabel(assignment, multi_label)
