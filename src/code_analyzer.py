@@ -138,22 +138,22 @@ class Code_analyzer:
                     multi_label = MultiLabel({source_pattern_object.get_name(): (source_pattern_object, label)})
                     self.multi_labelling.add_multilabel(left_variable_name, multi_label)
                 
-                    # if right hand variable is assigned before
-                    if right_variable_name in self.multi_labelling.get_multi_labels():
-                        existing_multilabel = self.multi_labelling.get_multi_label(right_variable_name)
+                # if right hand variable is assigned before
+                if right_variable_name in self.multi_labelling.get_multi_labels():
+                    existing_multilabel = self.multi_labelling.get_multi_label(right_variable_name)
 
-                        # todo: this seems like an unnecessary check
-                        if left_variable_name in self.multi_labelling.get_multi_labels() and len(source_patterns) > 0: # Is the variable_name assigned assigned to the current value_variable_name (edge case handling)?
-                            new_multi_label = self.multi_labelling.get_multi_label(left_variable_name).combine(existing_multilabel) # Combine
-                            self.multi_labelling.multi_labels[left_variable_name] = new_multi_label
-                        else: # Overwrite variable_name entry
-                            self.multi_labelling.mutator(right_variable_name, left_variable_name)
+                    # todo: this seems like an unnecessary check
+                    if left_variable_name in self.multi_labelling.get_multi_labels() and len(source_patterns) > 0: # Is the variable_name assigned assigned to the current value_variable_name (edge case handling)?
+                        new_multi_label = self.multi_labelling.get_multi_label(left_variable_name).combine(existing_multilabel) # Combine
+                        self.multi_labelling.multi_labels[left_variable_name] = new_multi_label
+                    else: # Overwrite variable_name entry
+                        self.multi_labelling.mutator(right_variable_name, left_variable_name)
 
-                    
-                    if self.is_sink(left_variable_name): # Report
-                        # print(f"Reporting assignment: {left_variable_name}")
-                        multi_label = self.multi_labelling.get_multi_label(left_variable_name)
-                        self.report(left_variable_name, multi_label, node.lineno)
+                
+                if self.is_sink(left_variable_name): # Report
+                    # print(f"Reporting assignment: {left_variable_name}")
+                    multi_label = self.multi_labelling.get_multi_label(left_variable_name)
+                    self.report(left_variable_name, multi_label, node.lineno)
 
             if isinstance(node.value, ast.Constant):
                 # print("Assign constant to:", left_variable_name)
@@ -314,6 +314,8 @@ class Code_analyzer:
 
                     if self.is_sink(call_name):
                         self.report(call_name, multi_label, node.lineno)
+            
+
 
                 return node.func.id
 
