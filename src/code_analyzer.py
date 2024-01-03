@@ -109,7 +109,7 @@ class Code_analyzer:
         if isinstance(node, ast.Module):
             for child_node in node.body:
                 self.traverse_ast(child_node, current_trace, all_traces)
-
+                print(child_node)
         #============================#
         # STATEMENTS
         #============================#
@@ -169,22 +169,28 @@ class Code_analyzer:
 
         elif isinstance(node, (ast.If)):
             else_trace = current_trace.deep_copy()
-            original_multilabelling = self.multi_labelling
+            original_multilabelling = self.multi_labelling.deep_copy()
 
             # trace for if
+
             current_trace.add_node(node)
+            print(current_trace)
             for body_child_node in node.body:
                 self.traverse_ast(body_child_node, current_trace, all_traces)
-            
+
             # trace for else
             current_trace.add_child_trace(else_trace)
-            self.multi_labelling = original_multilabelling
+            
+            # self.multi_labelling = original_multilabelling
+            
             all_traces.append(else_trace)
             if len(node.orelse) > 0:
                 else_trace.add_node(node)
 
                 for orelse_child_node in node.orelse:
                     self.traverse_ast(orelse_child_node, else_trace, all_traces)
+            # else:
+            #     self.multi_labelling = original_multilabelling
 
         elif isinstance(node, (ast.While)):
             for i in range(1, self.WHILE_LOOP_LIMIT+1):
@@ -267,7 +273,20 @@ class Code_analyzer:
                 sanitizer_patterns = self.get_relevant_sanitizer_patterns(call_name)
 
                 # if call has no arguments and is value of assignment
-                if len(inner_nodes) == 0 and assignment != False:
+                # if len(inner_nodes) == 0 and assignment != False:
+                #     multi_label = MultiLabel()
+                #     for source_pattern in source_patterns:
+                #         # is_sanitized = self.has_matching_object(list(map(lambda x: x.get_name(), sanitizer_patterns)), list(map(lambda x: x.get_name(), source_patterns)))
+                #         label = Label([(call_name, node.lineno, [])])
+                #         add_multi_label = MultiLabel({source_pattern.get_name(): (source_pattern, label)})
+                #         multi_label = multi_label.combine(add_multi_label)
+                #     self.multi_labelling.add_multilabel(assignment, multi_label)
+                #     self.report(assignment, multi_label, node.lineno)
+                        
+                #     return node.func.id
+
+
+                if assignment != False:
                     multi_label = MultiLabel()
                     for source_pattern in source_patterns:
                         # is_sanitized = self.has_matching_object(list(map(lambda x: x.get_name(), sanitizer_patterns)), list(map(lambda x: x.get_name(), source_patterns)))
@@ -276,8 +295,8 @@ class Code_analyzer:
                         multi_label = multi_label.combine(add_multi_label)
                     self.multi_labelling.add_multilabel(assignment, multi_label)
                     self.report(assignment, multi_label, node.lineno)
-                        
-                    return node.func.id
+                    if len(inner_nodes) == 0:
+                        return node.func.id
 
                 for name in inner_nodes:
 
@@ -342,6 +361,7 @@ if __name__ == "__main__":
     # code_file = "1b-basic-flow"
     # code_file = "2-expr-binary-ops"
     code_file = "4a-conds-branching"
+    # code_file = "3a-expr-func-calls"
     patterns = f"slices/{code_file}.patterns.json"
     code = f"slices/{code_file}.py"
     analyzer = Code_analyzer(patterns, code)
