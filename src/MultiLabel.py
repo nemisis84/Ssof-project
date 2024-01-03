@@ -30,7 +30,6 @@ class MultiLabel:
         self.lineno = lineno
         
     def combine(self, other_multilabel):
-        print("combine")
         result = MultiLabel(self.get_pattern_to_label_mapping())
         for (pattern, label) in other_multilabel.get_pattern_to_label_mapping().values():
             if pattern.get_name() in self.get_pattern_names():

@@ -41,7 +41,7 @@ class Policy:
         return [pattern.get_name() for pattern in self._patterns if pattern.contains_sink(sink)]
 
     def corresponding_illegal_flow(self, name, multi_label):
-        print(f"multi_label: {multi_label.get_pattern_to_label_mapping()}")
+
         multi_label_illegal_flow = MultiLabel({})
 
         for (pattern, label) in multi_label.get_pattern_to_label_mapping().values():

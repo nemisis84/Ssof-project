@@ -136,7 +136,6 @@ class Code_analyzer:
                 for source_pattern_object in source_patterns:
                     label = Label([(right_variable_name, node.lineno, [])])
                     multi_label = MultiLabel({source_pattern_object.get_name(): (source_pattern_object, label)})
-                    # print("Assign name to", left_variable_name, right_variable_name)
                     self.multi_labelling.add_multilabel(left_variable_name, multi_label)
                 
                     # if right hand variable is assigned before
@@ -156,19 +155,19 @@ class Code_analyzer:
                         multi_label = self.multi_labelling.get_multi_label(left_variable_name)
                         self.report(left_variable_name, multi_label, node.lineno)
 
-            elif isinstance(node.value, ast.Constant):
+            if isinstance(node.value, ast.Constant):
                 # print("Assign constant to:", left_variable_name)
                 self.multi_labelling.add_multilabel(left_variable_name, MultiLabel())
 
-            current_trace.add_node(node)
-            for target in node.targets:
-                self.traverse_ast(target, current_trace, all_traces)
+
+
             self.traverse_ast(node.value, current_trace, all_traces, assignment=left_variable_name) # Continue traversal
 
 
         elif isinstance(node, (ast.If)):
             else_trace = current_trace.deep_copy()
-    
+            original_multilabelling = self.multi_labelling
+
             # trace for if
             current_trace.add_node(node)
             for body_child_node in node.body:
@@ -176,6 +175,7 @@ class Code_analyzer:
             
             # trace for else
             current_trace.add_child_trace(else_trace)
+            self.multi_labelling = original_multilabelling
             all_traces.append(else_trace)
             if len(node.orelse) > 0:
                 else_trace.add_node(node)
@@ -274,19 +274,18 @@ class Code_analyzer:
                     self.multi_labelling.add_multilabel(assignment, multi_label)
                     self.report(assignment, multi_label, node.lineno)
                         
-                    return
+                    return node.func.id
 
                 for name in inner_nodes:
 
                     call_input = name.id
-                    print(f"Call input: {call_input}")
+
                     input_source_patterns = self.get_relevant_source_patterns(current_trace, call_input)
 
                     multi_label = MultiLabel()
 
                     # call input is variable that was left hand part of assigment earlier
-                    existing_multi_labels = self.multi_labelling.get_multi_labels()
-                    # print(existing_multi_labels)
+
                     if call_input in self.multi_labelling.get_multi_labels():
                         add_multi_label = self.multi_labelling.get_multi_label(call_input)
                         multi_label = multi_label.combine(add_multi_label)
@@ -316,6 +315,8 @@ class Code_analyzer:
                     if self.is_sink(call_name):
                         self.report(call_name, multi_label, node.lineno)
 
+                return node.func.id
+
         elif isinstance(node, ast.Attribute):
             # TODO: what if a sink calls on an attribute which is a source. 
             current_trace.add_node(node)
@@ -337,11 +338,12 @@ class Code_analyzer:
 
 if __name__ == "__main__":
     # code_file = "1b-basic-flow"
-    code_file = "3a-expr-func-calls"
+    # code_file = "2-expr-binary-ops"
+    code_file = "4a-conds-branching"
     patterns = f"slices/{code_file}.patterns.json"
     code = f"slices/{code_file}.py"
     analyzer = Code_analyzer(patterns, code)
     traces = analyzer.walk_tree()
     for vulnerabilities in analyzer.vulnerability.get_all_vulnerabilities():
         print(vulnerabilities)
-    # analyzer.pretty_print_traces(traces)
+    analyzer.pretty_print_traces(traces)
