@@ -100,7 +100,7 @@ class Code_analyzer:
         self.traverse_ast(self.tree, initial_trace, all_traces)
         return all_traces
 
-    def traverse_ast(self, node, current_trace, all_traces, assignment = False, parent_calls = set()):
+    def traverse_ast(self, node, current_trace, all_traces, assignment = False, parent_calls = []):
 
         #============================#
         # ROOT NODE
@@ -246,7 +246,7 @@ class Code_analyzer:
             # self.traverse_ast(node.func, current_trace, all_traces)
             
             parent_calls = copy.deepcopy(parent_calls)
-            parent_calls.add(node.func.id)
+            parent_calls.append(node.func.id)
 
             # if call has arguments, loop over arguments
             inner_nodes = []
@@ -258,17 +258,10 @@ class Code_analyzer:
                     inner_node = []
                 inner_nodes.extend(inner_node)
 
-            for call_name in parent_calls:
+            for call_name in reversed(parent_calls):
 
                 source_patterns = self.get_relevant_source_patterns(current_trace, call_name)
                 sanitizer_patterns = self.get_relevant_sanitizer_patterns(call_name)
-
-                # if call_name == node.func.id:
-                #     strict_parent_calls = copy.deepcopy(parent_calls)
-                #     strict_parent_calls.remove(node.func.id)
-                #     for parent_call in strict_parent_calls:
-                #         if self.is_sink(parent_call):
-                #             self.report(parent_call, multi_label, node.lineno)
 
                 # if call has no arguments and is value of assignment
                 if len(inner_nodes) == 0 and assignment != False:
@@ -298,7 +291,8 @@ class Code_analyzer:
                         add_multi_label = self.multi_labelling.get_multi_label(call_input)
                         multi_label = multi_label.combine(add_multi_label)
 
-                    label = Label([(call_input, node.lineno, [(call_name, node.lineno)])])
+                    # label = Label([(call_input, node.lineno, [(call_name, node.lineno)])])
+                    label = Label([(call_input, node.lineno, [])])
 
                     for input_source_pattern in input_source_patterns:
                         print(f"Input source pattern: {input_source_pattern.get_name()}")
@@ -307,14 +301,12 @@ class Code_analyzer:
                         multi_label = multi_label.combine(add_multi_label)
 
                     for sanitizer_pattern in sanitizer_patterns:
-                        if call_input in self.multi_labelling.get_multi_labels():
-                            call_input_multi_label = self.multi_labelling.get_multi_label(call_input)
-                            pattern_to_label_mappings = call_input_multi_label.get_pattern_to_label_mapping()
-                            for (pattern, label) in pattern_to_label_mappings.values():
-                                if pattern.get_name() == sanitizer_pattern.get_name():
-                                    for label_info in label.get_sources():
-                                        source = label_info[0]
-                                        label.add_sanitizer(source, {call_name: node.lineno}, call_name)
+                        pattern_to_label_mappings = multi_label.get_pattern_to_label_mapping()
+                        for (pattern, label) in pattern_to_label_mappings.values():
+                            if pattern.get_name() == sanitizer_pattern.get_name():
+                                for label_info in label.get_sources():
+                                    source = label_info[0]
+                                    label.add_sanitizer(source, call_name, node.lineno)
                 
                     if assignment:
                         self.multi_labelling.add_multilabel(assignment, multi_label)
@@ -346,7 +338,7 @@ class Code_analyzer:
 
 if __name__ == "__main__":
     # code_file = "1b-basic-flow"
-    code_file = "3a-expr-func-calls"
+    code_file = "2-expr-binary-ops"
     patterns = f"slices/{code_file}.patterns.json"
     code = f"slices/{code_file}.py"
     analyzer = Code_analyzer(patterns, code)
