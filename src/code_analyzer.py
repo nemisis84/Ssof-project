@@ -155,13 +155,16 @@ class Code_analyzer:
                     multi_label = self.multi_labelling.get_multi_label(left_variable_name)
                     self.report(left_variable_name, multi_label, node.lineno)
 
-            if isinstance(node.value, ast.Constant):
+            elif isinstance(node.value, ast.Constant):
                 # print("Assign constant to:", left_variable_name)
                 self.multi_labelling.add_multilabel(left_variable_name, MultiLabel())
 
-
-
+            current_trace.add_node(node)
+            for target in node.targets:
+                self.traverse_ast(target, current_trace, all_traces)
             self.traverse_ast(node.value, current_trace, all_traces, assignment=left_variable_name) # Continue traversal
+
+
 
 
         elif isinstance(node, (ast.If)):
