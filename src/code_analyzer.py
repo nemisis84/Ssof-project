@@ -243,7 +243,7 @@ class Code_analyzer:
 
         elif isinstance(node, ast.Call):
             current_trace.add_node(node)
-            self.traverse_ast(node.func, current_trace, all_traces)
+            # self.traverse_ast(node.func, current_trace, all_traces)
             
             parent_calls = copy.deepcopy(parent_calls)
             parent_calls.add(node.func.id)
@@ -262,6 +262,13 @@ class Code_analyzer:
 
                 source_patterns = self.get_relevant_source_patterns(current_trace, call_name)
                 sanitizer_patterns = self.get_relevant_sanitizer_patterns(call_name)
+
+                # if call_name == node.func.id:
+                #     strict_parent_calls = copy.deepcopy(parent_calls)
+                #     strict_parent_calls.remove(node.func.id)
+                #     for parent_call in strict_parent_calls:
+                #         if self.is_sink(parent_call):
+                #             self.report(parent_call, multi_label, node.lineno)
 
                 # if call has no arguments and is value of assignment
                 if len(inner_nodes) == 0 and assignment != False:
@@ -316,7 +323,7 @@ class Code_analyzer:
                     if self.is_sink(call_name):
                         self.report(call_name, multi_label, node.lineno)
             
-
+            return node.func
 
         elif isinstance(node, ast.Attribute):
             # TODO: what if a sink calls on an attribute which is a source. 
