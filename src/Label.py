@@ -2,7 +2,7 @@ import copy
 
 class Label:
     def __init__(self, sources: list):
-        self.sources = sources # [(source, source_lineno, [(san1, san1_lineno), (san2, san2_lineno)]), ...]
+        self.sources = sources # [(source, source_lineno, [[(san1, san1_lineno), (san2, san2_lineno)], [(san3, san3_lineno)]]), ...]
 
     def add_source(self, source):
         if isinstance(source, tuple):
@@ -10,10 +10,26 @@ class Label:
         else:
             print("Source needs to be tuple: (source, source_lineno, [(san1, san1_lineno), ...])")
 
+    # add sanitizer to all existing flows for source
     def add_sanitizer(self, source, sanitizer, sanitizer_lineno):
-        for (sor, _, sanitizers) in self.sources:
+        for (sor, _, sanitizer_flows) in self.sources:
             if sor == source:
-                sanitizers.append((sanitizer, sanitizer_lineno))
+                for sanitizer_flow in sanitizer_flows:
+                    sanitizer_flow.append((sanitizer, sanitizer_lineno))
+                return
+        print("No matching source")
+
+    # add sanitizer flow to all sources
+    def add_sanitizer_flow(self, sanitizer_flow):
+        for (_, _, sanitizer_flows) in self.sources:
+            sanitizer_flows.append(sanitizer_flow)
+        print("No matching source")
+
+    # add sanitizer flow to specific source
+    def add_sanitizer_flow_to_source(self, source, sanitizer_flow):
+        for (sor, _, sanitizer_flows) in self.sources:
+            if sor == source:
+                sanitizer_flows.append(sanitizer_flow)
                 return
         print("No matching source")
 

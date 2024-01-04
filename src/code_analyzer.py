@@ -293,17 +293,27 @@ class Code_analyzer:
                     add_multi_label = MultiLabel({input_source_pattern.get_name(): (input_source_pattern, label.deep_copy())})
                     multi_label = multi_label.combine(add_multi_label)
 
+                sanitizer_flow = dict()
                 for call_name in reversed(parent_calls):
 
                     sanitizer_patterns = self.get_relevant_sanitizer_patterns(call_name)
                     for sanitizer_pattern in sanitizer_patterns:
                         pattern_to_label_mappings = multi_label.get_pattern_to_label_mapping()
                         for (pattern, label) in pattern_to_label_mappings.values():
+                            # label.add_sanitizer_flow([])
                             if pattern.get_name() == sanitizer_pattern.get_name():
                                 for label_info in label.get_sources():
                                     source = label_info[0]
-                                    label.add_sanitizer(source, call_name, node.lineno)
 
+                                    key = (label, source)
+                                    if key not in sanitizer_flow:
+                                        sanitizer_flow[key] = []
+                                    sanitizer_flow[key].append((call_name, node.lineno))
+
+                for (label, source), flow_list in sanitizer_flow.items():
+                    label.add_sanitizer_flow_to_source(source, flow_list)
+
+                for call_name in reversed(parent_calls):
                     if self.is_sink(call_name):
                         self.report(call_name, multi_label, node.lineno)
 
@@ -335,7 +345,7 @@ class Code_analyzer:
 
 if __name__ == "__main__":
     # code_file = "1b-basic-flow"
-    code_file = "2-expr-binary-ops"
+    code_file = "1b-basic-flow"
     patterns = f"slices/{code_file}.patterns.json"
     code = f"slices/{code_file}.py"
     analyzer = Code_analyzer(patterns, code)
