@@ -63,11 +63,12 @@ class Code_analyzer:
 
     def report(self, variable_name, multi_label, sink_lineno = None):
         if self.is_sink(variable_name):
-            print(f"Report variable {variable_name}")
+            # print(f"Report variable {variable_name}")
             illegal_flow = self.policy.corresponding_illegal_flow(variable_name, multi_label)
             self.vulnerability.report_vulnerability(variable_name, illegal_flow, sink_lineno)
         else:
-            print("No illegal flow found")
+            # print("No illegal flow found")
+            pass
 
     def is_unassigned_variable(self, trace, node):
         parent_node = trace.get_nodes()[-1]
