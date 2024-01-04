@@ -19,7 +19,6 @@ class MultiLabel:
     def add_label(self, pattern, label):
         if pattern.get_name() in self.pattern_to_label_mapping:
             print(f"Pattern {pattern.get_name()} already exists.")
-            # print("label: " + str(label.get_sources()))
         else:
             self.pattern_to_label_mapping[pattern.get_name()] = (pattern, label)
             
@@ -30,7 +29,6 @@ class MultiLabel:
         self.lineno = lineno
         
     def combine(self, other_multilabel):
-        print("combine")
         result = MultiLabel(self.get_pattern_to_label_mapping())
         for (pattern, label) in other_multilabel.get_pattern_to_label_mapping().values():
             if pattern.get_name() in self.get_pattern_names():

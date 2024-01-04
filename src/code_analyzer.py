@@ -63,11 +63,12 @@ class Code_analyzer:
 
     def report(self, variable_name, multi_label, sink_lineno = None):
         if self.is_sink(variable_name):
-            print(f"Report variable {variable_name}")
+            # print(f"Report variable {variable_name}")
             illegal_flow = self.policy.corresponding_illegal_flow(variable_name, multi_label)
             self.vulnerability.report_vulnerability(variable_name, illegal_flow, sink_lineno)
         else:
-            print("No illegal flow found")
+            # print("No illegal flow found")
+            pass
 
     def is_unassigned_variable(self, trace, node):
         parent_node = trace.get_nodes()[-1]
@@ -279,7 +280,7 @@ class Code_analyzer:
                 for name in inner_nodes:
 
                     call_input = name.id
-                    print(f"Call input: {call_input}")
+                    # print(f"Call input: {call_input}")
                     input_source_patterns = self.get_relevant_source_patterns(current_trace, call_input)
 
                     multi_label = MultiLabel()
@@ -294,7 +295,7 @@ class Code_analyzer:
                     label = Label([(call_input, node.lineno, [(call_name, node.lineno)])])
 
                     for input_source_pattern in input_source_patterns:
-                        print(f"Input source pattern: {input_source_pattern.get_name()}")
+                        # print(f"Input source pattern: {input_source_pattern.get_name()}")
 
                         add_multi_label = MultiLabel({input_source_pattern.get_name(): (input_source_pattern, label)})
                         multi_label = multi_label.combine(add_multi_label)
