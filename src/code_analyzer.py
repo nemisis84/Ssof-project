@@ -290,12 +290,6 @@ class Code_analyzer:
 
                     label = Label([(call_input, node.lineno, [])])
 
-                    # existing_label = multi_label.get_label(input_source_pattern)
-                    # if existing_label.has_unsanitized_flow():
-                    #     label = Label([(call_input, node.lineno, [])])
-                    # else:
-                    #     label = Label([(call_input, node.lineno, [[]])])
-
                     print(f"Input source pattern: {input_source_pattern.get_name()}")
 
                     add_multi_label = MultiLabel({input_source_pattern.get_name(): (input_source_pattern, label)})
@@ -356,7 +350,7 @@ class Code_analyzer:
 
 if __name__ == "__main__":
     # code_file = "1b-basic-flow"
-    code_file = "3b-expr-func-calls"
+    code_file = "3a-expr-func-calls"
     patterns = f"slices/{code_file}.patterns.json"
     code = f"slices/{code_file}.py"
     analyzer = Code_analyzer(patterns, code)
