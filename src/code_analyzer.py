@@ -17,6 +17,7 @@ class Code_analyzer:
         self.tree = self.import_tree(code_file)
         self.multi_labelling = MultiLabelling()
         self.vulnerability = Vulnerabilities()
+        self.branches = []
 
     def import_tree(self, filename):
         with open(filename, 'r') as file:
@@ -109,7 +110,7 @@ class Code_analyzer:
         if isinstance(node, ast.Module):
             for child_node in node.body:
                 self.traverse_ast(child_node, current_trace, all_traces)
-                print(child_node)
+            print(current_trace.child_traces)
         #============================#
         # STATEMENTS
         #============================#
@@ -163,8 +164,6 @@ class Code_analyzer:
             for target in node.targets:
                 self.traverse_ast(target, current_trace, all_traces)
             self.traverse_ast(node.value, current_trace, all_traces, assignment=left_variable_name) # Continue traversal
-
-
 
 
         elif isinstance(node, (ast.If)):
@@ -268,7 +267,7 @@ class Code_analyzer:
                 inner_nodes.extend(inner_node)
 
             # if call has no arguments and is value of assignment
-            if len(inner_nodes) == 0 and assignment != False:
+            if assignment != False:
                 call_name = node.func.id
                 source_patterns = self.get_relevant_source_patterns(current_trace, call_name)
 
@@ -279,6 +278,9 @@ class Code_analyzer:
                     multi_label = multi_label.combine(add_multi_label)
                 self.multi_labelling.add_multilabel(assignment, multi_label)
                 self.report(assignment, multi_label, node.lineno)
+                if len(inner_nodes) == 0:
+                    return node.func
+                
 
             for name in inner_nodes:
 
@@ -343,9 +345,9 @@ class Code_analyzer:
                     print(node.__class__.__name__, end=end)
 
 if __name__ == "__main__":
-    code_file = "1b-basic-flow"
+    # code_file = "1b-basic-flow"
     # code_file = "2-expr-binary-ops"
-    # code_file = "4a-conds-branching"
+    code_file = "4a-conds-branching"
     # code_file = "3a-expr-func-calls"
     patterns = f"slices/{code_file}.patterns.json"
     code = f"slices/{code_file}.py"
