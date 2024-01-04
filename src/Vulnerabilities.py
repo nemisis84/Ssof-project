@@ -37,18 +37,18 @@ class Vulnerabilities():
             if sink in pattern.get_sinks():
                 sources = label.get_sources()
 
-                for source, source_lineno, sanitizers in sources:
+                for source, source_lineno, san_flows in sources:
+
+                    unsanitized_flows = any(not flow for flow in san_flows) # check if empty sanitizer flow (= unsanitized flow) exist
+                    sanitized_flows = [flow for flow in san_flows if flow] # filter out empty sanitizer flows
+
                     vulnerability = {}
                     vulnerability["vulnerability"] = self.name_helper(pattern.get_name())
                     vulnerability["source"] = [source, source_lineno]
                     vulnerability["sink"] = [sink, sink_lineno]
                     #Unsanitized flow may need to be first
-                    vulnerability["sanitized_flows"] = copy.deepcopy(sanitizers)
-                    if not vulnerability["sanitized_flows"]:
-                        vulnerability["unsanitized_flows"] = "Yes"
-                    else:
-                        # TODO: Find out how to decide this
-                        vulnerability["unsanitized_flows"] = "No"
+                    vulnerability["unsanitized_flows"] = "yes" if unsanitized_flows else "no"
+                    vulnerability["sanitized_flows"] = copy.deepcopy(sanitized_flows)
                     
                     vulnerability_reported = False
                     for vul in self.get_all_vulnerabilities():
