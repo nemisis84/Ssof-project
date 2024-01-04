@@ -45,6 +45,7 @@ class MultiLabel:
     def deep_copy(self):
         result_mapping = dict()
         for pattern_name, (pattern, label) in self.pattern_to_label_mapping.items():
-            result_mapping[pattern_name] = set((pattern.deep_copy(), label.deep_copy()))
+            result_mapping[pattern_name] = (pattern.deep_copy(), label.deep_copy())
 
         return MultiLabel(result_mapping)
+
