@@ -134,7 +134,7 @@ class Code_analyzer:
                 
                 # for all patterns where right hand variable is a source (could be 0)
                 for source_pattern_object in source_patterns:
-                    label = Label([(right_variable_name, node.lineno, [])])
+                    label = Label([(right_variable_name, node.lineno, [[]])])
                     multi_label = MultiLabel({source_pattern_object.get_name(): (source_pattern_object, label)})
                     # print("Assign name to", left_variable_name, right_variable_name)
                     self.multi_labelling.add_multilabel(left_variable_name, multi_label)
@@ -265,7 +265,7 @@ class Code_analyzer:
 
                 multi_label = MultiLabel()
                 for source_pattern in source_patterns:
-                    label = Label([(call_name, node.lineno, [])])
+                    label = Label([(call_name, node.lineno, [[]])])
                     add_multi_label = MultiLabel({source_pattern.get_name(): (source_pattern, label)})
                     multi_label = multi_label.combine(add_multi_label)
                 self.multi_labelling.add_multilabel(assignment, multi_label)
@@ -286,28 +286,40 @@ class Code_analyzer:
                     add_multi_label = self.multi_labelling.get_multi_label(call_input)
                     multi_label = multi_label.combine(add_multi_label)
 
-                label = Label([(call_input, node.lineno, [])])
                 for input_source_pattern in input_source_patterns:
+
+                    label = Label([(call_input, node.lineno, [])])
+
+                    # existing_label = multi_label.get_label(input_source_pattern)
+                    # if existing_label.has_unsanitized_flow():
+                    #     label = Label([(call_input, node.lineno, [])])
+                    # else:
+                    #     label = Label([(call_input, node.lineno, [[]])])
+
                     print(f"Input source pattern: {input_source_pattern.get_name()}")
 
-                    add_multi_label = MultiLabel({input_source_pattern.get_name(): (input_source_pattern, label.deep_copy())})
+                    add_multi_label = MultiLabel({input_source_pattern.get_name(): (input_source_pattern, label)})
                     multi_label = multi_label.combine(add_multi_label)
 
                 sanitizer_flows = dict()
                 for call_name in reversed(parent_calls):
 
                     sanitizer_patterns = self.get_relevant_sanitizer_patterns(call_name)
-                    for sanitizer_pattern in sanitizer_patterns:
-                        pattern_to_label_mappings = multi_label.get_pattern_to_label_mapping()
-                        for (pattern, label) in pattern_to_label_mappings.values():
-                            if pattern.get_name() == sanitizer_pattern.get_name():
-                                for label_info in label.get_sources():
-                                    source = label_info[0]
 
-                                    key = (label, source)
-                                    if key not in sanitizer_flows:
-                                        sanitizer_flows[key] = []
-                                    sanitizer_flows[key].append((call_name, node.lineno))
+                    pattern_to_label_mappings = multi_label.get_pattern_to_label_mapping()
+                    for (pattern, label) in pattern_to_label_mappings.values():
+                        for label_info in label.get_sources():
+                            source = label_info[0]
+
+                            key = (label, source)
+                            if key not in sanitizer_flows:
+                                sanitizer_flows[key] = []
+                        for sanitizer_pattern in sanitizer_patterns:
+                            if pattern.get_name() == sanitizer_pattern.get_name():
+                                sanitizer_flows[key].append((call_name, node.lineno))
+
+                for (label, source), flow_list in sanitizer_flows.items():
+                    label.remove_empty_sanitizer_flows()
 
                 for (label, source), flow_list in sanitizer_flows.items():
                     label.add_sanitizer_flow_to_source(source, flow_list)
@@ -344,7 +356,7 @@ class Code_analyzer:
 
 if __name__ == "__main__":
     # code_file = "1b-basic-flow"
-    code_file = "3a-expr-func-calls"
+    code_file = "3b-expr-func-calls"
     patterns = f"slices/{code_file}.patterns.json"
     code = f"slices/{code_file}.py"
     analyzer = Code_analyzer(patterns, code)
