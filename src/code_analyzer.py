@@ -273,20 +273,7 @@ class Code_analyzer:
                 sanitizer_patterns = self.get_relevant_sanitizer_patterns(call_name)
 
                 # if call has no arguments and is value of assignment
-                # if len(inner_nodes) == 0 and assignment != False:
-                #     multi_label = MultiLabel()
-                #     for source_pattern in source_patterns:
-                #         # is_sanitized = self.has_matching_object(list(map(lambda x: x.get_name(), sanitizer_patterns)), list(map(lambda x: x.get_name(), source_patterns)))
-                #         label = Label([(call_name, node.lineno, [])])
-                #         add_multi_label = MultiLabel({source_pattern.get_name(): (source_pattern, label)})
-                #         multi_label = multi_label.combine(add_multi_label)
-                #     self.multi_labelling.add_multilabel(assignment, multi_label)
-                #     self.report(assignment, multi_label, node.lineno)
-                        
-                #     return node.func.id
-
-
-                if assignment != False:
+                if len(inner_nodes) == 0 and assignment != False:
                     multi_label = MultiLabel()
                     for source_pattern in source_patterns:
                         # is_sanitized = self.has_matching_object(list(map(lambda x: x.get_name(), sanitizer_patterns)), list(map(lambda x: x.get_name(), source_patterns)))
@@ -295,8 +282,9 @@ class Code_analyzer:
                         multi_label = multi_label.combine(add_multi_label)
                     self.multi_labelling.add_multilabel(assignment, multi_label)
                     self.report(assignment, multi_label, node.lineno)
-                    if len(inner_nodes) == 0:
-                        return node.func.id
+                        
+                    return node.func.id
+
 
                 for name in inner_nodes:
 
@@ -358,9 +346,9 @@ class Code_analyzer:
                     print(node.__class__.__name__, end=end)
 
 if __name__ == "__main__":
-    # code_file = "1b-basic-flow"
+    code_file = "1b-basic-flow"
     # code_file = "2-expr-binary-ops"
-    code_file = "4a-conds-branching"
+    # code_file = "4a-conds-branching"
     # code_file = "3a-expr-func-calls"
     patterns = f"slices/{code_file}.patterns.json"
     code = f"slices/{code_file}.py"
