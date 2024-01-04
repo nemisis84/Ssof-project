@@ -1,0 +1,37 @@
+[
+    {
+      "vulnerability": "SQL Injection in Flask when using raw sql query from SQLAlchemy",
+      "sources": ["get"],
+      "sanitizers": ["parameterize query"],
+      "sinks": ["execute", "filter"],
+      "implicit": "no"
+    },
+    {
+      "vulnerability": "XSS in Django reqests",
+      "sources": ["get"],
+      "sanitizers": ["escape"],
+      "sinks": ["HttpResponse", "render"],
+      "implicit": "no"
+    },
+    {
+      "vulnerability": "XSS in Flask",
+      "sources": ["get"],
+      "sanitizers": ["None, but use Flasks own template engine"],
+      "sinks": ["make_response"],
+      "implicit": "no"
+    },
+    {
+      "vulnerability": "Flask path traversal",
+      "sources": ["get"],
+      "sanitizers": ["Whitelist with allowed paths", "normpath"],
+      "sinks": ["send_file"],
+      "implicit": "no"
+    },
+    {
+      "vulnerability": "Command injection in Flask",
+      "sources": ["form"],
+      "sanitizers": ["list2cmdline", "shlex.quote"],
+      "sinks": ["call", "Popen"],
+      "implicit": "no"
+    }
+  ]
